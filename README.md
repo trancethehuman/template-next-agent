@@ -81,6 +81,7 @@ Use Bun for the project:
 | `bun run lint:design` | Run the design and shadcn lint checks. |
 | `bun run typecheck` | Check TypeScript. |
 | `bun run build` | Build the Next.js application. |
+| `bun run build:eve` | Build the example EVE agent locally. |
 | `bun run build:vercel` | Assemble Vercel output after linking a project. |
 
 The project pins versions in `package.json` and `bun.lock`, including Workflow SDK `5.0.0-beta.55`. Run `bun install` after cloning. An unversioned `bun add workflow` currently selects the older 4.x line, so change that pin only alongside the installed Workflow docs and a full build.

@@ -10,6 +10,7 @@
     "dev": "next dev",
     "dev:eve": "eve dev",
     "build": "next build",
+    "build:eve": "eve build",
     "build:vercel": "bunx vercel@59.9.1 build",
     "start": "next start",
     "lint": "eslint .",

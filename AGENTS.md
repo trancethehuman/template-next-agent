@@ -47,7 +47,7 @@ The checked-in dependency versions and `bun.lock` define the working stack. In p
 
 Parse CSV and validate dates, amounts, direction, and row bounds in code. Jev answers closed-set semantic questions; it does not parse raw CSV or generate explanations. Keep uncertainty visible and route ambiguous transactions to review. Do not present a mock decision as a live Jev result. Show per-row queued, rules, Jev, classified, review, or failed status from actual workflow events. Never log raw uploaded rows. Do not add storage or an outbound action without documenting its retention and authorization model.
 
-When changing a behavior, update its relevant tests. Run `bun run test`, `bun run lint`, and `bun run typecheck` before reporting the change complete. For routing, framework, dependency, EVE, Workflow, or deployment changes, also run `bun run build`. Use the browser to verify CSV import, mock transaction selection, live row progress, review states, and error recovery when those paths change.
+When changing a behavior, update its relevant tests. Run `bun run test`, `bun run lint`, and `bun run typecheck` before reporting the change complete. For routing, framework, dependency, EVE, Workflow, or deployment changes, also run `bun run build`. Run `bun run build:eve` when changing the agent. Use the browser to verify CSV import, mock transaction selection, live row progress, review states, and error recovery when those paths change.
 
 ## Security and deployment
 
