@@ -1,12 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
   CircleHelpIcon,
   ChevronDownIcon,
-  FileSpreadsheetIcon,
   LoaderCircleIcon,
   PlayIcon,
   RotateCcwIcon,
@@ -22,14 +18,6 @@ import { RowSteps } from "@/components/transactions/row-steps";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import {
@@ -84,7 +72,7 @@ export function TransactionStatus({ row }: { row: ClassificationRow }) {
   return (
     <div className="flex max-w-64 flex-col items-start gap-1">
       {statusBadge(row.status)}
-      {row.reason && isTerminalStatus(row.status) && (
+      {row.reason && (row.status === "needs_review" || row.status === "failed") && (
         <span className="whitespace-normal break-words text-xs leading-snug text-muted-foreground">
           {row.reason}
         </span>
@@ -277,166 +265,196 @@ export function TransactionsPlayground() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5">
-          <Link className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground" href="/">
-            <ArrowLeftIcon aria-hidden="true" className="size-4" />
-            Use case directory
-          </Link>
-          <Badge variant="outline">Example 01</Badge>
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-10 sm:py-14">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <FileSpreadsheetIcon aria-hidden="true" className="size-4" />
-            FINANCIAL WORKFLOWS
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Classify transactions
-          </h1>
-          <p className="max-w-3xl text-muted-foreground">
-            Start with fictional records or preview your own CSV. Follow every transaction
-            as rules and Jev produce a category, movement, and review status.
+    <div className="flex min-w-0 flex-col gap-12">
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div className="flex max-w-3xl flex-col gap-3">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">USE CASE 01 / FINANCIAL OPERATIONS</p>
+          <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">Transaction classification</h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Import a CSV or use fictional transactions. Watch rules and Jev classify each row as the workflow runs.
           </p>
         </div>
+        <span className="border px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">Workflow example</span>
+      </header>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Choose transactions</CardTitle>
-              <CardDescription>Sample data is ready. CSV files are parsed in your browser before a run starts.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={source} onValueChange={(value) => reset(value as Source)}>
-                <TabsList>
-                  <TabsTrigger disabled={isBusy} value="sample">Sample data</TabsTrigger>
-                  <TabsTrigger disabled={isBusy} value="upload">Upload CSV</TabsTrigger>
-                </TabsList>
-                <TabsContent className="pt-4" value="sample">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <p className="text-muted-foreground">Choose which fictional transactions to classify.</p>
-                      <span className="font-medium">{selectedSampleIds.length} selected</span>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto rounded-lg border bg-background">
-                      {mockTransactions.map((transaction) => (
-                        <label className="flex cursor-pointer items-center gap-3 border-b px-3 py-2 last:border-b-0" key={transaction.id}>
-                          <input
-                            checked={selectedSampleIds.includes(transaction.id)}
-                            className="size-4 accent-primary"
-                            disabled={isBusy}
-                            onChange={() => toggleSample(transaction.id)}
-                            type="checkbox"
-                          />
-                          <span className="min-w-0 flex-1 truncate text-sm">{transaction.description}</span>
-                          <span className="text-xs tabular-nums text-muted-foreground">{formatAmount(transaction.amountMinor, transaction.currency)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent className="pt-4" value="upload">
-                  <div className="flex flex-col gap-3">
-                    <label className="text-sm font-medium" htmlFor="transaction-csv">Transaction CSV</label>
-                    <Input
-                      accept=".csv,text/csv"
-                      disabled={isBusy}
-                      id="transaction-csv"
-                      onChange={handleFile}
-                      type="file"
-                    />
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      Up to 25 rows and 64 KB. Use date, description, and signed amount columns,
-                      or date, description, debit, and credit. Currency is optional and defaults to CAD.
-                      Dates can be YYYY-MM-DD or MM/DD/YYYY. Negative amounts are money out;
-                      positive amounts are money in.
-                    </p>
-                    {fileName && <Badge variant="secondary">{fileName} · {transactions.length} rows</Badge>}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Run classification</CardTitle>
-              <CardDescription>Results stream into the table as the workflow advances.</CardDescription>
-              <CardAction>
-                <Badge variant={runState === "failed" ? "destructive" : "outline"}>
-                  {runState === "completed" ? "Complete" : isBusy ? "Live" : runState === "failed" ? "Failed" : "Ready"}
-                </Badge>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium" htmlFor="demo-token">Demo access token <span className="font-normal text-muted-foreground">(if configured)</span></label>
+      <section aria-label="Set up a classification run" className="grid border-y py-8 lg:grid-cols-2 lg:py-10">
+        <div className="flex min-w-0 flex-col gap-6 border-b pb-8 lg:border-r lg:border-b-0 lg:pr-10 lg:pb-0">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">01 / Source</p>
+            <h2 className="text-lg font-medium">Choose transactions</h2>
+            <p className="text-sm text-muted-foreground">Start with sample rows or preview a CSV before running.</p>
+          </div>
+          <Tabs value={source} onValueChange={(value) => reset(value as Source)}>
+            <TabsList>
+              <TabsTrigger disabled={isBusy} value="sample">Sample data</TabsTrigger>
+              <TabsTrigger disabled={isBusy} value="upload">Upload CSV</TabsTrigger>
+            </TabsList>
+            <TabsContent className="pt-5" value="sample">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <p>Choose which fictional transactions to classify.</p>
+                  <span>{selectedSampleIds.length} selected</span>
+                </div>
+                <div className="max-h-64 overflow-y-auto border bg-background">
+                  {mockTransactions.map((transaction) => (
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3 border-b px-3 py-2 transition-colors last:border-b-0 hover:bg-muted/50" key={transaction.id}>
+                      <input
+                        checked={selectedSampleIds.includes(transaction.id)}
+                        className="size-4 accent-primary"
+                        disabled={isBusy}
+                        onChange={() => toggleSample(transaction.id)}
+                        type="checkbox"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm">{transaction.description}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{formatAmount(transaction.amountMinor, transaction.currency)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent className="pt-5" value="upload">
+              <div className="flex flex-col gap-3">
+                <label
+                  className={cn("text-sm font-medium", fileName && "w-fit cursor-pointer underline-offset-4 hover:underline")}
+                  htmlFor="transaction-csv"
+                >
+                  {fileName ? "Replace transaction CSV" : "Transaction CSV"}
+                </label>
                 <Input
-                  autoComplete="off"
-                  id="demo-token"
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="Optional DEMO_ACCESS_TOKEN"
-                  type="password"
-                  value={token}
+                  accept=".csv,text/csv"
+                  className={fileName ? "sr-only" : undefined}
+                  disabled={isBusy}
+                  id="transaction-csv"
+                  onChange={handleFile}
+                  type="file"
                 />
+                <p className="max-w-lg text-xs leading-relaxed text-muted-foreground">
+                  Up to 25 rows and 64 KB. Use date, description, and signed amount columns,
+                  or date, description, debit, and credit. Currency is optional and defaults to CAD.
+                  Dates can be YYYY-MM-DD or MM/DD/YYYY. Negative amounts are money out;
+                  positive amounts are money in.
+                </p>
+                {fileName && <Badge className="self-start" variant="secondary">{fileName} · {transactions.length} rows</Badge>}
               </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Starting a run sends selected rows to this app&apos;s server. Ambiguous
-                descriptions may be sent through the configured AI Gateway.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button disabled={isBusy || transactions.length === 0} onClick={startRun} size="lg">
-                  {isBusy ? <LoaderCircleIcon aria-hidden="true" className="animate-spin" data-icon="inline-start" /> : <PlayIcon aria-hidden="true" data-icon="inline-start" />}
-                  {isBusy ? "Classifying…" : runState === "completed" || runState === "failed" ? "Run again" : "Classify transactions"}
-                </Button>
-                {source === "upload" && transactions.length > 0 && (
-                  <Button disabled={isBusy} onClick={() => reset("upload")} variant="ghost">
-                    <RotateCcwIcon aria-hidden="true" data-icon="inline-start" />
-                    Clear CSV
-                  </Button>
-                )}
-              </div>
-              <Task>
-                <TaskTrigger title="What this workflow does" />
-                <TaskContent>
-                  <TaskItem>Validate rows and create a resumable run.</TaskItem>
-                  <TaskItem>Apply deterministic rules to clear matches.</TaskItem>
-                  <TaskItem>Use Jev for transactions that need model judgment.</TaskItem>
-                  <TaskItem>Stream category and review decisions into the table.</TaskItem>
-                </TaskContent>
-              </Task>
-            </CardContent>
-          </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <CircleHelpIcon aria-hidden="true" />
-            <AlertTitle>Could not continue</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {runId && rows.length > 0 && <BatchProgressCards batches={batches} rows={rows} />}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-            <CardDescription aria-live="polite">{statusText} Click a row to see its workflow steps.</CardDescription>
-            <CardAction><Badge variant="secondary">{rows.length} {rows.length === 1 ? "row" : "rows"}</Badge></CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {(isBusy || runState === "completed" || runState === "failed") && rows.length > 0 && (
-              <Progress value={progress}>
-                <ProgressLabel>Processed</ProgressLabel>
-                <ProgressValue>{() => `${completedCount} of ${rows.length}`}</ProgressValue>
-              </Progress>
+        <div className="flex min-w-0 flex-col gap-6 pt-8 lg:pt-0 lg:pl-10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">02 / Process</p>
+              <h2 className="text-lg font-medium">Run classification</h2>
+              <p className="text-sm text-muted-foreground">Results stream into the table as each step finishes.</p>
+            </div>
+            <Badge variant={runState === "failed" ? "destructive" : "outline"}>
+              {runState === "completed" ? "Complete" : isBusy ? "Live" : runState === "failed" ? "Failed" : "Ready"}
+            </Badge>
+          </div>
+          <div className="flex max-w-md flex-col gap-2">
+            <label className="text-sm font-medium" htmlFor="demo-token">Demo access token <span className="font-normal text-muted-foreground">(if configured)</span></label>
+            <Input
+              autoComplete="off"
+              id="demo-token"
+              onChange={(event) => setToken(event.target.value)}
+              placeholder="Optional DEMO_ACCESS_TOKEN"
+              type="password"
+              value={token}
+            />
+          </div>
+          <p className="max-w-lg text-xs leading-relaxed text-muted-foreground">
+            Starting a run sends selected rows to this app&apos;s server. Ambiguous
+            descriptions may be sent through the configured AI Gateway.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button disabled={isBusy || transactions.length === 0} onClick={startRun} size="lg">
+              {isBusy ? <LoaderCircleIcon aria-hidden="true" className="animate-spin" data-icon="inline-start" /> : <PlayIcon aria-hidden="true" data-icon="inline-start" />}
+              {isBusy ? "Classifying…" : runState === "completed" || runState === "failed" ? "Run again" : "Classify transactions"}
+            </Button>
+            {source === "upload" && transactions.length > 0 && (
+              <Button disabled={isBusy} onClick={() => reset("upload")} variant="ghost">
+                <RotateCcwIcon aria-hidden="true" data-icon="inline-start" />
+                Clear CSV
+              </Button>
             )}
+          </div>
+          <Task className="border-t pt-5" defaultOpen={false}>
+            <TaskTrigger title="How the workflow works" />
+            <TaskContent>
+              <TaskItem>Validate rows and create a resumable run.</TaskItem>
+              <TaskItem>Apply deterministic rules to clear matches.</TaskItem>
+              <TaskItem>Use Jev for transactions that need model judgment.</TaskItem>
+              <TaskItem>Stream category and review decisions into the table.</TaskItem>
+            </TaskContent>
+          </Task>
+        </div>
+      </section>
+
+      {error && (
+        <Alert variant="destructive">
+          <CircleHelpIcon aria-hidden="true" />
+          <AlertTitle>Could not continue</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {runId && rows.length > 0 && <BatchProgressCards batches={batches} rows={rows} />}
+
+      <section aria-labelledby="transactions-heading" className="flex min-w-0 flex-col gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Live results</p>
+            <h2 className="text-xl font-medium" id="transactions-heading">Transactions</h2>
+            <p aria-live="polite" className="text-sm text-muted-foreground">{statusText} Click a row to inspect its workflow steps.</p>
+          </div>
+          <Badge variant="outline">{rows.length} {rows.length === 1 ? "row" : "rows"}</Badge>
+        </div>
+        {(isBusy || runState === "completed" || runState === "failed") && rows.length > 0 && (
+          <Progress value={progress}>
+            <ProgressLabel>Processed</ProgressLabel>
+            <ProgressValue>{() => `${completedCount} of ${rows.length}`}</ProgressValue>
+          </Progress>
+        )}
+        <div className="border-y">
+          <ul aria-label="Transactions" className="md:hidden">
+            {rows.length === 0 ? (
+              <li className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {source === "sample" ? "Select at least one sample transaction." : "Upload a CSV to see its rows here."}
+              </li>
+            ) : rows.map((row, index) => (
+              <li className="border-b last:border-b-0" key={row.id}>
+                <button
+                  aria-controls={`mobile-row-steps-${index}`}
+                  aria-expanded={openRowId === row.id}
+                  className="flex w-full flex-col gap-3 px-4 py-4 text-left focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  onClick={() => setOpenRowId((current) => current === row.id ? null : row.id)}
+                  type="button"
+                >
+                  <span className="flex w-full items-start justify-between gap-3">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{row.description}</span>
+                    <span className="shrink-0 text-sm font-medium tabular-nums">{formatAmount(row.amountMinor, row.currency)}</span>
+                  </span>
+                  <span className="flex w-full items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-xs text-muted-foreground">
+                      {formatDate(row.date)} · {row.category ?? (row.movement === "transfer" ? "Transfer" : "Pending")}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {statusBadge(row.status)}
+                      <ChevronDownIcon aria-hidden="true" className={cn("size-4 text-muted-foreground transition-transform", openRowId === row.id && "rotate-180")} />
+                    </span>
+                  </span>
+                </button>
+                {openRowId === row.id && (
+                  <div className="bg-sidebar/50 px-4 pb-4" id={`mobile-row-steps-${index}`}>
+                    <RowSteps history={histories.get(row.id) ?? []} row={row} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block">
             <Table>
-              <TableCaption>
+              <TableCaption className="sr-only">
                 {rows.length > 0
                   ? `Preview of ${rows.length} ${source === "sample" ? "fictional" : "uploaded"} ${rows.length === 1 ? "transaction" : "transactions"}${runId ? ` in run ${runId}` : ""}.`
                   : source === "sample"
@@ -445,18 +463,18 @@ export function TransactionsPlayground() {
               </TableCaption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Date</TableHead>
+                  <TableHead className="px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Description</TableHead>
+                  <TableHead className="px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Category</TableHead>
+                  <TableHead className="px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Type</TableHead>
+                  <TableHead className="px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">Status</TableHead>
+                  <TableHead className="px-4 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell className="py-12 text-center text-muted-foreground" colSpan={6}>
+                    <TableCell className="px-4 py-12 text-center text-muted-foreground" colSpan={6}>
                       {source === "sample" ? "Select at least one sample transaction." : "Upload a CSV to see its rows here."}
                     </TableCell>
                   </TableRow>
@@ -473,13 +491,13 @@ export function TransactionsPlayground() {
                     }}
                     tabIndex={0}
                   >
-                    <TableCell className="text-muted-foreground">{formatDate(row.date)}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground">{formatDate(row.date)}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <Button
                         aria-controls={`row-steps-${index}`}
                         aria-expanded={openRowId === row.id}
                         aria-label={`${openRowId === row.id ? "Hide" : "Show"} workflow steps for ${row.description}`}
-                        className="h-auto max-w-56 justify-start px-0 text-left font-medium"
+                        className="h-auto max-w-72 justify-start px-0 text-left font-medium"
                         onClick={(event) => {
                           event.stopPropagation();
                           setOpenRowId((current) => current === row.id ? null : row.id);
@@ -491,19 +509,19 @@ export function TransactionsPlayground() {
                         <ChevronDownIcon aria-hidden="true" className={cn("shrink-0 transition-transform", openRowId === row.id && "rotate-180")} data-icon="inline-end" />
                       </Button>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
                         <span>{row.category ?? "—"}</span>
                         {row.source && <span className="text-xs text-muted-foreground">{row.source === "rule" ? "Rule" : "Jev"}{row.confidence != null ? ` · ${Math.round(row.confidence * 100)}% confidence` : ""}</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="capitalize text-muted-foreground">{row.movement ?? "—"}</TableCell>
-                    <TableCell><TransactionStatus row={row} /></TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{formatAmount(row.amountMinor, row.currency)}</TableCell>
+                    <TableCell className="px-4 py-3 capitalize text-muted-foreground">{row.movement ?? "—"}</TableCell>
+                    <TableCell className="px-4 py-3"><TransactionStatus row={row} /></TableCell>
+                    <TableCell className="px-4 py-3 text-right font-medium tabular-nums">{formatAmount(row.amountMinor, row.currency)}</TableCell>
                   </TableRow>
                   {openRowId === row.id && (
                     <TableRow>
-                      <TableCell className="bg-muted/30 px-4" colSpan={6}>
+                      <TableCell className="bg-sidebar/50 px-4 py-4" colSpan={6}>
                         <div id={`row-steps-${index}`}>
                           <RowSteps history={histories.get(row.id) ?? []} row={row} />
                         </div>
@@ -514,16 +532,10 @@ export function TransactionsPlayground() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-          <p>Categories are a demo result. Review classifications before using them for accounting.</p>
-          <Link className="inline-flex items-center gap-1 font-medium text-foreground hover:underline" href="/">
-            Browse all use cases <ArrowRightIcon aria-hidden="true" className="size-4" />
-          </Link>
+          </div>
         </div>
-      </main>
+        <p className="text-xs text-muted-foreground">Categories are a demo result. Review classifications before using them for accounting.</p>
+      </section>
     </div>
   );
 }

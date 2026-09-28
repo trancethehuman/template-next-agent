@@ -1,98 +1,77 @@
 import Link from "next/link";
-import { ArrowRightIcon, ChartNoAxesCombinedIcon, Layers3Icon, SparklesIcon } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { ArrowRightIcon, ChartNoAxesCombinedIcon } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link className="flex items-center gap-3 font-semibold tracking-tight" href="/">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Layers3Icon aria-hidden="true" className="size-5" />
-            </span>
-            template-next-agent
-          </Link>
-          <Badge variant="outline">Open source starter</Badge>
+    <div className="space-y-12">
+      <section aria-labelledby="directory-heading" className="max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Use case directory
+        </p>
+        <h1
+          className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl"
+          id="directory-heading"
+        >
+          Build from a working example.
+        </h1>
+        <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+          Explore a focused agent workflow, try it with sample data, and adapt the source for
+          your own project.
+        </p>
+      </section>
+
+      <section aria-labelledby="examples-heading">
+        <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+          <h2 className="text-sm font-semibold text-foreground" id="examples-heading">
+            Available examples
+          </h2>
+          <span className="text-xs tabular-nums text-muted-foreground">01 example</span>
         </div>
-      </header>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-16 sm:py-24">
-        <section className="flex max-w-3xl flex-col items-start gap-6">
-          <Badge variant="secondary">
-            <SparklesIcon aria-hidden="true" data-icon="inline-start" />
-            Agent workflows, ready to explore
-          </Badge>
-          <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-            Start with a working example. Make it yours.
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            A small Next.js starter for building practical AI workflows. Open a use case,
-            inspect the code, and replace the sample data with your own.
-          </p>
-          <Link className={buttonVariants({ size: "lg" })} href="/transactions">
-            Explore the first example
-            <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-          </Link>
-        </section>
-
-        <section aria-labelledby="examples-heading" className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-muted-foreground">USE CASE DIRECTORY</p>
-              <h2 className="text-2xl font-semibold tracking-tight" id="examples-heading">
-                Explore the examples
-              </h2>
+        <Link
+          className="group mt-5 block rounded-sm border border-border bg-card outline-none transition-colors hover:border-foreground/35 focus-visible:ring-2 focus-visible:ring-ring"
+          href="/transactions"
+        >
+          <div className="grid gap-10 p-6 md:flex md:items-center md:gap-8 md:p-8 lg:p-10">
+            <div className="min-w-0 md:flex-1">
+              <div className="mb-7 flex items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-sm border border-border bg-secondary text-foreground">
+                  <ChartNoAxesCombinedIcon aria-hidden="true" className="size-4" />
+                </span>
+                <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                  Finance / 01
+                </span>
+              </div>
+              <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                Financial transaction classification
+              </h3>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                Upload your own CSV or use fictional transactions. Follow every row through
+                rules and Jev classification as the workflow runs.
+              </p>
             </div>
-            <span className="text-sm text-muted-foreground">01 working example</span>
+
+            <div className="border-t border-border pt-5 md:w-64 md:shrink-0 md:border-l md:border-t-0 md:py-2 md:pl-8">
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Try in this example
+              </p>
+              <ul className="mt-4 space-y-2.5 text-sm text-foreground">
+                <li>CSV or sample transactions</li>
+                <li>Live batch progress</li>
+                <li>Step-by-step row detail</li>
+              </ul>
+            </div>
+
+            <span className="flex size-9 items-center justify-center rounded-sm border border-border transition-colors group-hover:border-foreground group-hover:bg-foreground group-hover:text-background md:self-start">
+              <ArrowRightIcon aria-hidden="true" className="size-4" />
+            </span>
           </div>
+        </Link>
+      </section>
 
-          <Card className="max-w-3xl">
-            <CardHeader>
-              <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-                <ChartNoAxesCombinedIcon aria-hidden="true" className="size-5" />
-              </div>
-              <CardTitle className="text-xl">Financial transaction classification</CardTitle>
-              <CardDescription className="max-w-xl leading-relaxed">
-                Upload a CSV or try fictional transactions. Watch each row move through
-                rules and Jev assisted classification, with results appearing as the
-                workflow runs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">CSV import</Badge>
-                <Badge variant="outline">Live row status</Badge>
-                <Badge variant="outline">Workflow SDK + Jev</Badge>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Link className={buttonVariants({ variant: "secondary" })} href="/transactions">
-                Open use case
-                <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-              </Link>
-            </CardFooter>
-          </Card>
-        </section>
-
-        <Separator />
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-          <p>Built to be read, changed, and extended.</p>
-          <p>Next.js · EVE · Vercel AI Gateway · Workflow SDK</p>
-        </footer>
-      </main>
+      <p className="border-t border-border pt-5 text-xs text-muted-foreground">
+        Designed to be read, changed, and extended. Built with Next.js, EVE, Jev, and Workflow SDK.
+      </p>
     </div>
   );
 }

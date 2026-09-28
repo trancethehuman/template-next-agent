@@ -35,20 +35,24 @@ function StepIcon({ step, active }: { step: ClassificationRow; active: boolean }
 
 export function RowSteps({ row, history }: { row: ClassificationRow; history: readonly ClassificationRow[] }) {
   return (
-    <div className="flex flex-col gap-3 py-2 whitespace-normal">
-      <div className="flex flex-wrap items-center gap-2">
+    <section aria-label={`Workflow steps for ${row.description}`} className="border-t border-border py-5 whitespace-normal">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">Workflow steps</h3>
-        <Badge variant="outline">{rowStatusLabel(row.status)}</Badge>
+        <Badge className="rounded-none" variant="outline">{rowStatusLabel(row.status)}</Badge>
       </div>
+
       {history.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Waiting for this row to enter the workflow.</p>
+        <p className="pt-5 text-sm text-muted-foreground">Waiting for this row to enter the workflow.</p>
       ) : (
-        <ol aria-label={`Workflow steps for ${row.description}`} aria-live="polite" aria-relevant="additions text" className="flex flex-col gap-3">
+        <ol aria-label={`Workflow steps for ${row.description}`} aria-live="polite" aria-relevant="additions text" className="mt-5 border-t border-border">
           {history.map((step, index) => (
-            <li className="flex items-start gap-3" key={`${step.id}-${step.status}`}>
-              <span className="mt-0.5"><StepIcon active={index === history.length - 1} step={step} /></span>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-sm font-medium">{rowStatusLabel(step.status)}</span>
+            <li className="flex items-start gap-4 border-b border-border py-4" key={`${step.id}-${step.status}`}>
+              <span className="mt-0.5 shrink-0"><StepIcon active={index === history.length - 1} step={step} /></span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-sm font-medium">{rowStatusLabel(step.status)}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
+                </div>
                 <span className="text-sm text-muted-foreground">{stepDescription(step)}</span>
                 {step.reason && isTerminalStatus(step.status) && (
                   <span className="text-sm text-muted-foreground">{step.reason}</span>
@@ -58,6 +62,6 @@ export function RowSteps({ row, history }: { row: ClassificationRow; history: re
           ))}
         </ol>
       )}
-    </div>
+    </section>
   );
 }

@@ -46,4 +46,18 @@ describe("TransactionStatus", () => {
     expect(html).toContain("Review needed");
     expect(html).toContain("Merchant context was too ambiguous for a confident category.");
   });
+
+  test("keeps a successful row compact while details remain in its step history", () => {
+    const html = renderToStaticMarkup(
+      <TransactionStatus
+        row={{
+          ...baseRow,
+          status: "classified",
+          reason: "The description explicitly identifies a bank fee.",
+        }}
+      />,
+    );
+    expect(html).toContain("Classified");
+    expect(html).not.toContain("The description explicitly identifies a bank fee.");
+  });
 });
