@@ -20,6 +20,21 @@ async function emitQueuedRows(transactions: TransactionInput[]): Promise<void> {
   }
 }
 
+async function emitBatchProgress(
+  batchIndex: number,
+  totalBatches: number,
+  rowIds: string[],
+  status: "processing" | "completed",
+): Promise<void> {
+  "use step";
+  const writer = getWritable<string>().getWriter();
+  try {
+    await writeEvent(writer, { type: "batch", batchIndex, totalBatches, rowIds, status });
+  } finally {
+    writer.releaseLock();
+  }
+}
+
 async function classifyRow(transaction: TransactionInput): Promise<ClassificationRow["status"]> {
   "use step";
   const writer = getWritable<string>().getWriter();
@@ -66,10 +81,17 @@ export async function classifyTransactionsWorkflow(transactions: TransactionInpu
   "use workflow";
   const runId = getWorkflowMetadata().workflowRunId;
   await emitQueuedRows(transactions);
+  const batchSize = 4;
+  const totalBatches = Math.ceil(transactions.length / batchSize);
   let failed = false;
-  for (let index = 0; index < transactions.length; index += 4) {
-    const statuses = await Promise.all(transactions.slice(index, index + 4).map(classifyRow));
+  for (let index = 0; index < transactions.length; index += batchSize) {
+    const batch = transactions.slice(index, index + batchSize);
+    const batchIndex = index / batchSize;
+    const rowIds = batch.map((transaction) => transaction.id);
+    await emitBatchProgress(batchIndex, totalBatches, rowIds, "processing");
+    const statuses = await Promise.all(batch.map(classifyRow));
     if (statuses.includes("failed")) failed = true;
+    await emitBatchProgress(batchIndex, totalBatches, rowIds, "completed");
   }
   const status = failed ? "failed" : "completed";
   await emitDone(runId, status);

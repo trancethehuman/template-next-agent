@@ -5,16 +5,20 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CircleHelpIcon,
+  ChevronDownIcon,
   FileSpreadsheetIcon,
   LoaderCircleIcon,
   PlayIcon,
   RotateCcwIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 
 import { Task, TaskContent, TaskItem, TaskTrigger } from "@/components/ai-elements/task";
+import { BatchProgressCards } from "@/components/transactions/batch-progress";
+import { applyRunEvent, createRunProgress, isTerminalStatus } from "@/components/transactions/run-progress";
 import { RunStreamFatalError, watchRun } from "@/components/transactions/run-stream";
+import { RowSteps } from "@/components/transactions/row-steps";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,23 +45,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MAX_CSV_BYTES, parseTransactionCsv } from "@/lib/transactions/csv";
 import { mockTransactions } from "@/lib/transactions/mock";
 import type { ClassificationRow, ClassificationStatus, TransactionInput } from "@/lib/transactions/types";
+import { cn } from "@/lib/utils";
 
 type Source = "sample" | "upload";
 type RunState = "idle" | "starting" | "running" | "completed" | "failed";
-
-const terminalStatuses: ClassificationStatus[] = ["classified", "needs_review", "failed"];
-
-function queueRows(transactions: TransactionInput[]): ClassificationRow[] {
-  return transactions.map((transaction) => ({
-    ...transaction,
-    status: "queued",
-    category: null,
-    movement: null,
-    confidence: null,
-    source: null,
-    reason: null,
-  }));
-}
 
 function formatAmount(amountMinor: number, currency: TransactionInput["currency"]): string {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency }).format(amountMinor / 100);
@@ -93,7 +84,7 @@ export function TransactionStatus({ row }: { row: ClassificationRow }) {
   return (
     <div className="flex max-w-64 flex-col items-start gap-1">
       {statusBadge(row.status)}
-      {row.reason && terminalStatuses.includes(row.status) && (
+      {row.reason && isTerminalStatus(row.status) && (
         <span className="whitespace-normal break-words text-xs leading-snug text-muted-foreground">
           {row.reason}
         </span>
@@ -120,7 +111,8 @@ export function TransactionsPlayground() {
     () => mockTransactions.map((transaction) => transaction.id),
   );
   const [transactions, setTransactions] = useState<TransactionInput[]>(mockTransactions);
-  const [rows, setRows] = useState<ClassificationRow[]>(() => queueRows(mockTransactions));
+  const [runProgress, setRunProgress] = useState(() => createRunProgress(mockTransactions));
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [runState, setRunState] = useState<RunState>("idle");
@@ -131,8 +123,9 @@ export function TransactionsPlayground() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  const { rows, batches, histories } = runProgress;
   const isBusy = runState === "starting" || runState === "running";
-  const completedCount = rows.filter((row) => terminalStatuses.includes(row.status)).length;
+  const completedCount = rows.filter((row) => isTerminalStatus(row.status)).length;
   const reviewCount = rows.filter((row) => row.status === "needs_review").length;
   const progress = rows.length === 0 ? 0 : Math.round((completedCount / rows.length) * 100);
   const statusText =
@@ -155,7 +148,8 @@ export function TransactionsPlayground() {
     if (nextSource === "sample") setSelectedSampleIds(mockTransactions.map((transaction) => transaction.id));
     const nextTransactions = nextSource === "sample" ? mockTransactions : [];
     setTransactions(nextTransactions);
-    setRows(queueRows(nextTransactions));
+    setRunProgress(createRunProgress(nextTransactions));
+    setOpenRowId(null);
     setFileName(null);
     setRunState("idle");
     setRunId(null);
@@ -171,7 +165,8 @@ export function TransactionsPlayground() {
     const nextTransactions = mockTransactions.filter((transaction) => nextIds.includes(transaction.id));
     setSelectedSampleIds(nextIds);
     setTransactions(nextTransactions);
-    setRows(queueRows(nextTransactions));
+    setRunProgress(createRunProgress(nextTransactions));
+    setOpenRowId(null);
     setRunState("idle");
     setRunId(null);
     setReconnectCount(0);
@@ -190,7 +185,8 @@ export function TransactionsPlayground() {
     setFileName(null);
     setError(null);
     setTransactions([]);
-    setRows([]);
+    setRunProgress(createRunProgress([]));
+    setOpenRowId(null);
 
     if (file.size > MAX_CSV_BYTES) {
       setError("CSV file is too large. Choose a file under 64 KB.");
@@ -199,7 +195,7 @@ export function TransactionsPlayground() {
     try {
       const parsed = parseTransactionCsv(await file.text());
       setTransactions(parsed);
-      setRows(queueRows(parsed));
+      setRunProgress(createRunProgress(parsed));
       setFileName(file.name);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "CSV could not be read.");
@@ -212,7 +208,8 @@ export function TransactionsPlayground() {
     const controller = new AbortController();
     abortRef.current?.abort();
     abortRef.current = controller;
-    setRows(queueRows(transactions));
+    setRunProgress(createRunProgress(transactions));
+    setOpenRowId((current) => current ?? transactions[0]?.id ?? null);
     setRunState("starting");
     setRunId(null);
     setReconnectCount(0);
@@ -260,8 +257,8 @@ export function TransactionsPlayground() {
           return stream.body;
         },
         (event) => {
-          if (event.type === "row") {
-            setRows((current) => current.map((row) => (row.id === event.row.id ? event.row : row)));
+          if (event.type === "row" || event.type === "batch") {
+            setRunProgress((current) => applyRunEvent(current, event));
             return;
           }
           setRunState(event.status === "completed" ? "completed" : "failed");
@@ -423,10 +420,12 @@ export function TransactionsPlayground() {
           </Alert>
         )}
 
+        {runId && rows.length > 0 && <BatchProgressCards batches={batches} rows={rows} />}
+
         <Card>
           <CardHeader>
             <CardTitle>Transactions</CardTitle>
-            <CardDescription aria-live="polite">{statusText}</CardDescription>
+            <CardDescription aria-live="polite">{statusText} Click a row to see its workflow steps.</CardDescription>
             <CardAction><Badge variant="secondary">{rows.length} {rows.length === 1 ? "row" : "rows"}</Badge></CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
@@ -461,10 +460,37 @@ export function TransactionsPlayground() {
                       {source === "sample" ? "Select at least one sample transaction." : "Upload a CSV to see its rows here."}
                     </TableCell>
                   </TableRow>
-                ) : rows.map((row) => (
-                  <TableRow key={row.id}>
+                ) : rows.map((row, index) => (
+                  <Fragment key={row.id}>
+                  <TableRow
+                    aria-label={`Workflow steps for ${row.description}`}
+                    className="cursor-pointer focus-visible:outline-2 focus-visible:outline-ring"
+                    onClick={() => setOpenRowId((current) => current === row.id ? null : row.id)}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+                      event.preventDefault();
+                      setOpenRowId((current) => current === row.id ? null : row.id);
+                    }}
+                    tabIndex={0}
+                  >
                     <TableCell className="text-muted-foreground">{formatDate(row.date)}</TableCell>
-                    <TableCell className="max-w-56 truncate font-medium" title={row.description}>{row.description}</TableCell>
+                    <TableCell>
+                      <Button
+                        aria-controls={`row-steps-${index}`}
+                        aria-expanded={openRowId === row.id}
+                        aria-label={`${openRowId === row.id ? "Hide" : "Show"} workflow steps for ${row.description}`}
+                        className="h-auto max-w-56 justify-start px-0 text-left font-medium"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenRowId((current) => current === row.id ? null : row.id);
+                        }}
+                        title={row.description}
+                        variant="ghost"
+                      >
+                        <span className="truncate">{row.description}</span>
+                        <ChevronDownIcon aria-hidden="true" className={cn("shrink-0 transition-transform", openRowId === row.id && "rotate-180")} data-icon="inline-end" />
+                      </Button>
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
                         <span>{row.category ?? "—"}</span>
@@ -475,6 +501,16 @@ export function TransactionsPlayground() {
                     <TableCell><TransactionStatus row={row} /></TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{formatAmount(row.amountMinor, row.currency)}</TableCell>
                   </TableRow>
+                  {openRowId === row.id && (
+                    <TableRow>
+                      <TableCell className="bg-muted/30 px-4" colSpan={6}>
+                        <div id={`row-steps-${index}`}>
+                          <RowSteps history={histories.get(row.id) ?? []} row={row} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

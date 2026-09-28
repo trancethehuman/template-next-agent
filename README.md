@@ -23,11 +23,18 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000). Select **Transaction classification** from the directory or go directly to [http://localhost:3000/transactions](http://localhost:3000/transactions). Select individual synthetic transactions or upload a CSV, then start classification. AI Gateway authentication is required for live Jev decisions.
 
+## Preview
+
+![Transaction classification screen with completed batches and a row's workflow steps](docs/screenshots/transaction-classification.png)
+
+The screenshot uses synthetic transactions.
+
 ## Environment
 
 | Variable | Local | Vercel | Purpose |
 | --- | --- | --- | --- |
 | `AI_GATEWAY_API_KEY` | Set for live model calls | Optional if project OIDC is enabled | Authenticates Jev and EVE model calls through AI Gateway. |
+| `WORKFLOW_LOCAL_HEADERS_TIMEOUT_MS` | Keep the example value `90000` | Not needed | Gives the local Workflow queue time for slower Jev responses without replaying steps. Restart `bun run dev` after changing it. |
 | `DEMO_ACCESS_TOKEN` | Optional for local-only use | Required for an internet-facing demo | Bearer token for protected classification routes. Use a long random value and keep it server-side. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Optional | Optional | Your own Supabase project URL for future features. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional | Optional | Browser-safe publishable key for that project. Set together with the URL. |
@@ -45,7 +52,7 @@ flowchart LR
   E --> F[Transaction table]
 ```
 
-CSV parsing, row limits, amounts, and dates are handled in application code. Jev receives a structured transaction and a closed set of classification choices; it is not used to parse the CSV. Workflow SDK persists and resumes the processing steps and emits row-level progress. The table distinguishes classified rows, rows that need review, and failed rows. Sample transactions are synthetic. The app does not post accounting entries or move money.
+CSV parsing, row limits, amounts, and dates are handled in application code. Jev receives a structured transaction and a closed set of classification choices; it is not used to parse the CSV. Workflow SDK persists and resumes processing steps and emits row-level and batch progress. Runs process up to four rows per batch. Click a transaction to inspect its live step history. The table distinguishes classified rows, rows that need review, and failed rows. Sample transactions are synthetic. The app does not post accounting entries or move money.
 
 The browser retries a dropped progress connection up to three times, resuming from the last event index. The Workflow run continues when a connection drops. Reloading the page resets the current table and run selection in this starter.
 

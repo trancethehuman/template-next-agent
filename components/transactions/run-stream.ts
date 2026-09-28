@@ -19,6 +19,25 @@ function parseRunEvent(line: string): RunEvent {
       return value as RunEvent;
     }
   }
+  if (
+    value.type === "batch" &&
+    "batchIndex" in value &&
+    typeof value.batchIndex === "number" &&
+    Number.isInteger(value.batchIndex) &&
+    value.batchIndex >= 0 &&
+    "totalBatches" in value &&
+    typeof value.totalBatches === "number" &&
+    Number.isInteger(value.totalBatches) &&
+    value.totalBatches > value.batchIndex &&
+    "rowIds" in value &&
+    Array.isArray(value.rowIds) &&
+    value.rowIds.length > 0 &&
+    value.rowIds.every((id: unknown) => typeof id === "string" && id.length > 0) &&
+    "status" in value &&
+    (value.status === "processing" || value.status === "completed")
+  ) {
+    return value as RunEvent;
+  }
   if (value.type === "done" && "status" in value && "runId" in value) {
     if (
       typeof value.runId === "string" &&

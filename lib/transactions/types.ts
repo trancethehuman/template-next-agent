@@ -25,4 +25,11 @@ export interface ClassificationRow extends TransactionInput {
 
 export type RunEvent =
   | { type: "row"; row: ClassificationRow }
+  | {
+      type: "batch";
+      batchIndex: number;
+      totalBatches: number;
+      rowIds: string[];
+      status: "processing" | "completed";
+    }
   | { type: "done"; runId: string; status: "completed" | "failed" };

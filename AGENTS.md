@@ -13,6 +13,8 @@ cp .env.local.example .env.local
 
 Open `.env.local` and supply `AI_GATEWAY_API_KEY` for local Jev and EVE calls. Set `DEMO_ACCESS_TOKEN` before exposing the classification endpoints on a public deployment. Supabase is optional: leave both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` empty unless a new feature needs a Supabase project. `.env.local` is ignored by Git; `.env.local.example` is the only environment template to commit. Never copy credentials from another repository or put them in a prompt, log, test fixture, screenshot, or commit. If a required credential is missing, report the missing variable name and continue with work that does not require its value.
 
+Keep `WORKFLOW_LOCAL_HEADERS_TIMEOUT_MS=90000` from the example for local development. A slower Jev call can exceed Workflow Local World's shorter default response-header timeout and cause step replay. Treat stream events as at least once when rendering status.
+
 ```bash
 bun run dev
 bun run test

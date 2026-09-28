@@ -50,6 +50,20 @@ describe("readRunEvents", () => {
     await expect(consume()).rejects.toThrow("invalid status update");
   });
 
+  test("decodes batch status updates and rejects invalid batch indexes", async () => {
+    const batch: RunEvent = { type: "batch", batchIndex: 0, totalBatches: 1, rowIds: ["one"], status: "processing" };
+    const events: RunEvent[] = [];
+    for await (const event of readRunEvents(chunkedStream([`${JSON.stringify(batch)}\n`]))) events.push(event);
+    expect(events).toEqual([batch]);
+
+    const consume = async () => {
+      for await (const event of readRunEvents(chunkedStream([
+        '{"type":"batch","batchIndex":2,"totalBatches":1,"rowIds":["one"],"status":"processing"}\n',
+      ]))) void event;
+    };
+    await expect(consume()).rejects.toThrow("invalid status update");
+  });
+
   test("reconnects from the next workflow event without replaying a row", async () => {
     const startIndexes: number[] = [];
     const events: RunEvent[] = [];
