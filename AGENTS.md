@@ -36,7 +36,9 @@ bun run build
 - `lib/supabase/` contains optional browser and server client helpers. Both return `null` with no Supabase configuration and require both a project URL and a current publishable key otherwise. The transaction sample does not depend on Supabase and ships without a schema or Auth flow. `supabase/config.toml` is a CLI scaffold.
 - `skills/` is the visible, versioned skill library. `.agents/skills` is a relative symlink to it so coding agents can discover the same files.
 
-The shared `skills/` directory includes Next.js, React, EVE, TypeSafe, Workflow, shadcn, Supabase, AI SDK, AI Elements, AI Gateway, Vercel, and verification guidance. Read the relevant `SKILL.md` before changing those integrations. Skills provide workflow guidance; the installed package docs are the API source of truth:
+For interface and feature design, use [`skills/project-design/SKILL.md`](skills/project-design/SKILL.md) to shape the task, layout, states, implementation, and browser review within this project's existing design system. It applies to regular development and redesigns of existing screens as well as new pages.
+
+The shared `skills/` directory also includes Next.js, React, EVE, TypeSafe, Workflow, shadcn, Supabase, AI SDK, AI Elements, AI Gateway, Vercel, and verification guidance. Read the relevant `SKILL.md` before changing those integrations. Skills provide workflow guidance; the installed package docs are the API source of truth:
 
 - Next.js: `node_modules/next/dist/docs/`
 - AI SDK: `node_modules/ai/docs/`

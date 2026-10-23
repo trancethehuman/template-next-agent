@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Design"
+  short_description: "Design and build interfaces in this starter"
+  default_prompt: "Use $project-design to design and implement a feature in this project using its existing components and theme."

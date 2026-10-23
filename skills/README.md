@@ -7,6 +7,7 @@ This is the visible source directory for the starter's portable coding-agent ski
 | `next-best-practices`, `nextjs` | Next.js App Router and version-aware patterns. |
 | `vercel-react-best-practices`, `vercel-composition-patterns`, `building-components` | React performance and composable components. |
 | `shadcn`, `web-design-guidelines` | UI components, design consistency, and interface review. |
+| `project-design` | Task-led feature and interface design, implementation, redesigns, interaction states, and browser review in this starter. Invoke with `$project-design` or describe the UI work. |
 | `ai-sdk`, `ai-elements`, `ai-gateway` | AI SDK APIs, AI interface components, and Gateway. |
 | `eve`, `typesafe-ai`, `workflow` | Agent runtime, Jev judgments, and durable workflows. |
 | `supabase` | Optional database, Auth, and Storage setup and security guidance. |
