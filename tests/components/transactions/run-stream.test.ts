@@ -42,6 +42,24 @@ describe("readRunEvents", () => {
     ]);
   });
 
+  test("accepts a large network chunk containing multiple bounded events", async () => {
+    const line = `${JSON.stringify({ type: "row", row })}\n`;
+    const events: RunEvent[] = [];
+    for await (const event of readRunEvents(chunkedStream([line.repeat(500)])))
+      events.push(event);
+    expect(events.length).toBe(500);
+  });
+
+  test("rejects an oversized individual event even when newline-terminated", async () => {
+    const consume = async () => {
+      for await (const event of readRunEvents(
+        chunkedStream([`${"x".repeat(65537)}\n`]),
+      ))
+        void event;
+    };
+    await expect(consume()).rejects.toThrow("too large");
+  });
+
   test("rejects malformed status updates", async () => {
     const stream = chunkedStream(['{"type":"unexpected"}\n']);
     const consume = async () => {
@@ -51,15 +69,27 @@ describe("readRunEvents", () => {
   });
 
   test("decodes batch status updates and rejects invalid batch indexes", async () => {
-    const batch: RunEvent = { type: "batch", batchIndex: 0, totalBatches: 1, rowIds: ["one"], status: "processing" };
+    const batch: RunEvent = {
+      type: "batch",
+      batchIndex: 0,
+      totalBatches: 1,
+      rowIds: ["one"],
+      status: "processing",
+    };
     const events: RunEvent[] = [];
-    for await (const event of readRunEvents(chunkedStream([`${JSON.stringify(batch)}\n`]))) events.push(event);
+    for await (const event of readRunEvents(
+      chunkedStream([`${JSON.stringify(batch)}\n`]),
+    ))
+      events.push(event);
     expect(events).toEqual([batch]);
 
     const consume = async () => {
-      for await (const event of readRunEvents(chunkedStream([
-        '{"type":"batch","batchIndex":2,"totalBatches":1,"rowIds":["one"],"status":"processing"}\n',
-      ]))) void event;
+      for await (const event of readRunEvents(
+        chunkedStream([
+          '{"type":"batch","batchIndex":2,"totalBatches":1,"rowIds":["one"],"status":"processing"}\n',
+        ]),
+      ))
+        void event;
     };
     await expect(consume()).rejects.toThrow("invalid status update");
   });
@@ -73,7 +103,9 @@ describe("readRunEvents", () => {
         startIndexes.push(startIndex);
         return startIndex === 0
           ? chunkedStream([`${JSON.stringify({ type: "row", row })}\n`])
-          : chunkedStream(['{"type":"done","runId":"run-1","status":"completed"}\n']);
+          : chunkedStream([
+              '{"type":"done","runId":"run-1","status":"completed"}\n',
+            ]);
       },
       (event) => events.push(event),
       new AbortController().signal,

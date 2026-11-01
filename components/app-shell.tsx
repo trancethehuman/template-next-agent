@@ -1,16 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowUpRightIcon,
   BookOpenIcon,
   GitForkIcon,
   LayoutGridIcon,
   ListFilterIcon,
+  UploadIcon,
+  FootprintsIcon,
+  ZapIcon,
+  Columns2Icon,
+  SettingsIcon,
   XIcon,
+  CpuIcon,
+  SparklesIcon,
 } from "lucide-react";
+import { Suspense } from "react";
 import type { ReactNode } from "react";
+import {
+  getTransactionView,
+  transactionViewHref,
+  transactionViews,
+} from "@/lib/transactions/views";
+import type { TransactionView } from "@/lib/transactions/views";
+import { navigateTransactionView } from "@/components/transactions/navigation";
 
 import {
   Sidebar,
@@ -32,10 +47,27 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 const navigation = [
   { href: "/", label: "Directory", icon: LayoutGridIcon },
-  { href: "/transactions", label: "Transaction classification", icon: ListFilterIcon },
+  { href: "/transactions", label: "Decision lab", icon: ListFilterIcon },
+  { href: "/assistant", label: "Always-on assistant", icon: SparklesIcon },
 ] as const;
 
-function AppNavigation({ pathname }: { pathname: string }) {
+const viewIcons = {
+  models: CpuIcon,
+  import: UploadIcon,
+  transactions: ListFilterIcon,
+  step: FootprintsIcon,
+  live: ZapIcon,
+  compare: Columns2Icon,
+  settings: SettingsIcon,
+};
+
+function AppNavigation({
+  pathname,
+  activeView = "models",
+}: {
+  pathname: string;
+  activeView?: TransactionView;
+}) {
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -50,7 +82,9 @@ function AppNavigation({ pathname }: { pathname: string }) {
             <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-foreground text-[13px] font-semibold text-background">
               T
             </span>
-            <span className="truncate text-[13px] font-semibold tracking-tight">template-next-agent</span>
+            <span className="truncate text-[13px] font-semibold tracking-tight">
+              template-next-agent
+            </span>
           </Link>
           <button
             aria-label="Close navigation"
@@ -72,16 +106,19 @@ function AppNavigation({ pathname }: { pathname: string }) {
             <nav aria-label="Main navigation">
               <SidebarMenu className="gap-1">
                 {navigation.map(({ href, icon: Icon, label }) => {
-                  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                  const active =
+                    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
                   return (
                     <SidebarMenuItem key={href}>
                       <SidebarMenuButton
                         className="h-9 rounded-sm px-2.5 text-[13px] text-sidebar-foreground/75 data-active:bg-white data-active:text-sidebar-foreground data-active:shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-white/70 hover:text-sidebar-foreground"
-                        isActive={active}
+                        isActive={active && href !== "/transactions"}
                         render={
                           <Link
-                            aria-current={active ? "page" : undefined}
+                            aria-current={
+                              active && href !== "/transactions" ? "page" : undefined
+                            }
                             href={href}
                             onClick={() => setOpenMobile(false)}
                           />
@@ -98,14 +135,60 @@ function AppNavigation({ pathname }: { pathname: string }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <div className="mt-8 border-t border-sidebar-border px-5 pt-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
-            Starter project
-          </p>
-          <p className="mt-3 max-w-44 text-xs leading-5 text-muted-foreground">
-            A small, editable starting point for durable agent workflows.
-          </p>
-        </div>
+        {pathname.startsWith("/transactions") && (
+          <SidebarGroup className="px-3 pt-3">
+            <SidebarGroupLabel className="text-xs">
+              Decision lab
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <nav aria-label="Decision lab navigation">
+                <SidebarMenu>
+                  {transactionViews.map(({ id, label }) => {
+                    const Icon = viewIcons[id];
+                    return (
+                      <SidebarMenuItem key={id}>
+                        <SidebarMenuButton
+                          isActive={activeView === id}
+                          className={
+                            id === "live"
+                              ? "pl-8 text-muted-foreground"
+                              : id === "settings"
+                                ? "mt-5"
+                                : undefined
+                          }
+                          render={
+                            <Link
+                              href={transactionViewHref(id)}
+                              aria-current={
+                                activeView === id ? "page" : undefined
+                              }
+                              onClick={(event) => {
+                                if (
+                                  event.button !== 0 ||
+                                  event.metaKey ||
+                                  event.ctrlKey ||
+                                  event.shiftKey ||
+                                  event.altKey
+                                )
+                                  return;
+                                event.preventDefault();
+                                navigateTransactionView(id);
+                                setOpenMobile(false);
+                              }}
+                            />
+                          }
+                        >
+                          <Icon aria-hidden="true" />
+                          <span>{label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </nav>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border px-3 py-4">
@@ -127,7 +210,10 @@ function AppNavigation({ pathname }: { pathname: string }) {
             >
               <BookOpenIcon aria-hidden="true" className="size-4" />
               <span>Documentation</span>
-              <ArrowUpRightIcon aria-hidden="true" className="ml-auto size-3.5 opacity-55" />
+              <ArrowUpRightIcon
+                aria-hidden="true"
+                className="ml-auto size-3.5 opacity-55"
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -144,7 +230,10 @@ function AppNavigation({ pathname }: { pathname: string }) {
             >
               <GitForkIcon aria-hidden="true" className="size-4" />
               <span>GitHub</span>
-              <ArrowUpRightIcon aria-hidden="true" className="ml-auto size-3.5 opacity-55" />
+              <ArrowUpRightIcon
+                aria-hidden="true"
+                className="ml-auto size-3.5 opacity-55"
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -153,11 +242,23 @@ function AppNavigation({ pathname }: { pathname: string }) {
   );
 }
 
+function SearchAwareNavigation({ pathname }: { pathname: string }) {
+  const searchParams = useSearchParams();
+  return (
+    <AppNavigation
+      pathname={pathname}
+      activeView={getTransactionView(searchParams.get("view"))}
+    />
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const pageTitle = pathname.startsWith("/transactions")
-    ? "Transaction classification"
-    : "Use case directory";
+    ? "Decision lab"
+    : pathname.startsWith("/assistant")
+      ? "Always-on assistant"
+    : "Directory";
 
   return (
     <TooltipProvider>
@@ -168,20 +269,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <AppNavigation pathname={pathname} />
+        <Suspense fallback={<AppNavigation pathname={pathname} />}>
+          <SearchAwareNavigation pathname={pathname} />
+        </Suspense>
         <SidebarInset className="min-w-0" id="main-content" tabIndex={-1}>
           <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 md:px-8">
             <div className="flex min-w-0 items-center gap-2.5">
-              <SidebarTrigger aria-label="Toggle navigation" className="-ml-1 rounded-sm" />
-              <span className="hidden text-[13px] text-muted-foreground sm:inline">Workspace</span>
-              <span aria-hidden="true" className="hidden text-border sm:inline">/</span>
-              <span className="truncate text-[13px] font-medium text-foreground">{pageTitle}</span>
+              <SidebarTrigger
+                aria-label="Toggle navigation"
+                className="-ml-1 rounded-sm"
+              />
+              <span className="truncate text-[13px] font-medium text-foreground">
+                {pageTitle}
+              </span>
             </div>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              Open source starter
-            </span>
           </header>
-          <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8 md:py-12">
+          <div className="mx-auto w-full max-w-screen-2xl px-4 py-8 md:px-8 md:py-10">
             {children}
           </div>
         </SidebarInset>

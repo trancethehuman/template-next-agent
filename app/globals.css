@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "streamdown/styles.css";
+@import "katex/dist/katex.min.css";
+
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -24,6 +29,8 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -66,7 +73,9 @@
   --destructive: #bb3834;
   --border: #e3e3df;
   --input: #d8d8d3;
-  --ring: #222321;
+  --ring: #3457a5;
+  --signal: #3457a5;
+  --signal-foreground: #ffffff;
   --chart-1: #d9dbd4;
   --chart-2: #8c9185;
   --chart-3: #656b5e;
@@ -80,7 +89,7 @@
   --sidebar-accent: #e9e9e5;
   --sidebar-accent-foreground: #222321;
   --sidebar-border: #e3e3df;
-  --sidebar-ring: #222321;
+  --sidebar-ring: #3457a5;
 }
 
 @layer base {
@@ -92,5 +101,50 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+.assistant-conversation-frame {
+  height: max(24rem, calc(100dvh - 18rem));
+  min-height: 24rem;
+}
+
+/* Moving dashes show work flowing into the active stage of a live run. */
+.assistant-flow-line {
+  background-image: linear-gradient(
+    90deg,
+    var(--signal) 0 50%,
+    transparent 50% 100%
+  );
+  background-size: 0.5rem 100%;
+  animation: assistant-flow 0.9s linear infinite;
+}
+
+.assistant-flow-line-vertical {
+  background-image: linear-gradient(
+    180deg,
+    var(--signal) 0 50%,
+    transparent 50% 100%
+  );
+  background-size: 100% 0.5rem;
+  animation: assistant-flow-vertical 0.9s linear infinite;
+}
+
+@keyframes assistant-flow {
+  to {
+    background-position: 0.5rem 0;
+  }
+}
+
+@keyframes assistant-flow-vertical {
+  to {
+    background-position: 0 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-flow-line,
+  .assistant-flow-line-vertical {
+    animation: none;
   }
 }

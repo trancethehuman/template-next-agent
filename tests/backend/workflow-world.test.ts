@@ -24,7 +24,9 @@ mock.module("workflow/api", () => ({
       getReadable: () =>
         new ReadableStream<string>({
           start(controller) {
-            controller.enqueue('{"type":"done","runId":"wrun_synthetic","status":"completed"}\n');
+            controller.enqueue(
+              '{"type":"done","runId":"wrun_synthetic","status":"completed"}\n',
+            );
             controller.close();
           },
         }),
@@ -36,36 +38,48 @@ const { POST } = await import("../../app/api/runs/route");
 const { GET } = await import("../../app/api/runs/[runId]/stream/route");
 
 test("run routes use Workflow API defaults beside EVE", async () => {
-  const response = await POST(
-    new Request("http://localhost/api/runs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        transactions: [
-          {
-            id: "synthetic-1",
-            date: "2026-09-28",
-            description: "Synthetic transfer",
-            amountMinor: -100,
-            currency: "CAD",
-          },
-        ],
+  const previousToken = process.env.DEMO_ACCESS_TOKEN;
+  process.env.DEMO_ACCESS_TOKEN = "workflow-fixture-token";
+  try {
+    const response = await POST(
+      new Request("http://localhost/api/runs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer workflow-fixture-token",
+        },
+        body: JSON.stringify({
+          transactions: [
+            {
+              id: "synthetic-1",
+              date: "2026-09-28",
+              description: "Synthetic transfer",
+              amountMinor: -100,
+              currency: "CAD",
+            },
+          ],
+        }),
       }),
-    }),
-  );
+    );
 
-  assert.equal(response.status, 202);
-  assert.deepEqual(calls, ["start"]);
-  assert.equal(startOptions, undefined);
-  assert.deepEqual(await response.json(), { runId: "wrun_synthetic" });
+    assert.equal(response.status, 202);
+    assert.deepEqual(calls, ["start"]);
+    assert.equal(startOptions, undefined);
+    assert.deepEqual(await response.json(), { runId: "wrun_synthetic" });
 
-  calls.length = 0;
-  const streamResponse = await GET(
-    new Request("http://localhost/api/runs/wrun_synthetic/stream"),
-    { params: Promise.resolve({ runId: "wrun_synthetic" }) },
-  );
+    calls.length = 0;
+    const streamResponse = await GET(
+      new Request("http://localhost/api/runs/wrun_synthetic/stream", {
+        headers: { Authorization: "Bearer workflow-fixture-token" },
+      }),
+      { params: Promise.resolve({ runId: "wrun_synthetic" }) },
+    );
 
-  assert.equal(streamResponse.status, 200);
-  assert.deepEqual(calls, ["getRun"]);
-  assert.match(await streamResponse.text(), /"status":"completed"/);
+    assert.equal(streamResponse.status, 200);
+    assert.deepEqual(calls, ["getRun"]);
+    assert.match(await streamResponse.text(), /"status":"completed"/);
+  } finally {
+    if (previousToken === undefined) delete process.env.DEMO_ACCESS_TOKEN;
+    else process.env.DEMO_ACCESS_TOKEN = previousToken;
+  }
 });

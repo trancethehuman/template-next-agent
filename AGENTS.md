@@ -32,7 +32,7 @@ bun run build
 - `components/ui/` contains shadcn generated primitives; `components/ai-elements/` contains installed AI Elements source.
 - `lib/transactions/` contains transaction types and CSV validation. `lib/classification/` contains deterministic checks and Jev evaluation.
 - `workflows/` contains durable orchestration. Keep external I/O, Jev calls, and stream writes in `"use step"` functions. A `"use workflow"` function coordinates steps only.
-- `agent/` contains the EVE agent. Do not broaden its default capability surface or expose private session routes anonymously.
+- `agent/` contains the EVE agent. Do not broaden its default capability surface or expose private session routes anonymously. Its `browser` tool, a per-user Vercel Sandbox running Chrome, is the one deliberate exception: it needs the user's approval in each conversation and must stay limited as described in [docs/SECURITY.md](docs/SECURITY.md).
 - `lib/supabase/` contains optional browser and server client helpers. Both return `null` with no Supabase configuration and require both a project URL and a current publishable key otherwise. The transaction sample does not depend on Supabase and ships without a schema or Auth flow. `supabase/config.toml` is a CLI scaffold.
 - `skills/` is the visible, versioned skill library. `.agents/skills` is a relative symlink to it so coding agents can discover the same files.
 

@@ -40,17 +40,37 @@ export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
     const text = await readBody(request);
-    if (!text) return Response.json({ error: "Invalid transaction request." }, { status: 400 });
+    if (!text)
+      return Response.json(
+        { error: "Invalid transaction request." },
+        { status: 400 },
+      );
     body = JSON.parse(text);
   } catch {
-    return Response.json({ error: "Invalid transaction request." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid transaction request." },
+      { status: 400 },
+    );
   }
   const input = runInputSchema.safeParse(body);
-  if (!input.success) return Response.json({ error: "Invalid transaction request." }, { status: 400 });
+  if (!input.success)
+    return Response.json(
+      { error: "Invalid transaction request." },
+      { status: 400 },
+    );
   try {
-    const run = await start(classifyTransactionsWorkflow, [input.data.transactions]);
-    return Response.json({ runId: run.runId }, { status: 202, headers: { "Cache-Control": "no-store" } });
+    const run = await start(classifyTransactionsWorkflow, [
+      input.data.transactions,
+      input.data.options,
+    ]);
+    return Response.json(
+      { runId: run.runId },
+      { status: 202, headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
-    return Response.json({ error: "Unable to start classification." }, { status: 503 });
+    return Response.json(
+      { error: "Unable to start classification." },
+      { status: 503 },
+    );
   }
 }

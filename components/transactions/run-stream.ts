@@ -13,7 +13,12 @@ function parseRunEvent(line: string): RunEvent {
   if (!value || typeof value !== "object" || !("type" in value)) {
     throw new Error("The run sent an invalid status update.");
   }
-  if (value.type === "row" && "row" in value && value.row && typeof value.row === "object") {
+  if (
+    value.type === "row" &&
+    "row" in value &&
+    value.row &&
+    typeof value.row === "object"
+  ) {
     const row = value.row as { id?: unknown; status?: unknown };
     if (typeof row.id === "string" && typeof row.status === "string") {
       return value as RunEvent;
@@ -32,7 +37,9 @@ function parseRunEvent(line: string): RunEvent {
     "rowIds" in value &&
     Array.isArray(value.rowIds) &&
     value.rowIds.length > 0 &&
-    value.rowIds.every((id: unknown) => typeof id === "string" && id.length > 0) &&
+    value.rowIds.every(
+      (id: unknown) => typeof id === "string" && id.length > 0,
+    ) &&
     "status" in value &&
     (value.status === "processing" || value.status === "completed")
   ) {
@@ -49,7 +56,9 @@ function parseRunEvent(line: string): RunEvent {
   throw new Error("The run sent an invalid status update.");
 }
 
-export async function* readRunEvents(stream: ReadableStream<Uint8Array>): AsyncGenerator<RunEvent> {
+export async function* readRunEvents(
+  stream: ReadableStream<Uint8Array>,
+): AsyncGenerator<RunEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let pending = "";
@@ -59,17 +68,17 @@ export async function* readRunEvents(stream: ReadableStream<Uint8Array>): AsyncG
       const { done, value } = await reader.read();
       if (done) break;
       pending += decoder.decode(value, { stream: true });
-      if (pending.length > MAX_EVENT_LENGTH) {
-        throw new Error("The run sent a status update that was too large.");
-      }
-
       let newline = pending.indexOf("\n");
       while (newline >= 0) {
+        if (newline > MAX_EVENT_LENGTH)
+          throw new Error("The run sent a status update that was too large.");
         const line = pending.slice(0, newline).trim();
         pending = pending.slice(newline + 1);
         if (line) yield parseRunEvent(line);
         newline = pending.indexOf("\n");
       }
+      if (pending.length > MAX_EVENT_LENGTH)
+        throw new Error("The run sent a status update that was too large.");
     }
 
     pending += decoder.decode();

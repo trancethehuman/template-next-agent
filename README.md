@@ -21,11 +21,19 @@ Open `.env.local` and fill in `AI_GATEWAY_API_KEY` with your own [Vercel AI Gate
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Select **Transaction classification** from the directory or go directly to [http://localhost:3000/transactions](http://localhost:3000/transactions). Select individual synthetic transactions or upload a CSV, then start classification. AI Gateway authentication is required for live Jev decisions.
+The dev server binds to `127.0.0.1`. Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Select **Transaction classification** from the directory or go directly to [http://localhost:3000/transactions](http://localhost:3000/transactions). Choose a model, look at its compact stats card, add synthetic transactions, and follow the Next buttons to run the demo and view results. Local development uses server configuration automatically; no token entry is needed. Deployed demos accept the access token in Settings. AI Gateway authentication is required for live Jev decisions.
+
+The **Always-on assistant** example is at [http://localhost:3000/assistant](http://localhost:3000/assistant). [Configure Google sign-in](docs/AUTH.md), then chat with the EVE agent, delegate meeting preparation, and inspect your durable tasks in the inbox. Clones accept verified Google accounts by default; an optional environment setting restricts a deployment to a Google Workspace organization. Each account has separate chats, tasks, preferences, and Calendar consent. The synthetic rehearsal needs no Calendar credentials and demonstrates start, sleep/wake, pause/resume, approvals, source replay, and cancellation. Calendar access defaults to read-only; an enabled installation can create private events after the signed-in user approves each exact proposal. See [the assistant guide](docs/ASSISTANT.md) and [calendar setup](docs/ASSISTANT-CALENDAR.md).
+
+## Webinar teaching lab
+
+The numbered sidebar follows **Choose a model → Add transactions → Run the demo → View results → Compare models**, with **Full speed** beside the demo and **Settings** separate. Each view has one task, with processing details in a side panel. The lab includes an AI Elements decision graph, step-by-step playback of actual events, **Full speed**, and per-row model reruns. A plain-language explanation follows the active step. Hover any node for metadata, scores, probabilities, and timing, or click to open its full details. Inspect Choice distributions, an evidence Score, boolean P(true), provider confidence when returned, timing, and the code's review policy. Compare Jev, Microsoft Decision 1, OpenAI Decisions API (GPT-6 Luna), Liquid D1, and Laya using the same questions. Models without Gateway zero-retention support require explicitly acknowledged synthetic data.
+
+Use the downloadable mock Amex-style CSV for a statement-import demonstration. See [docs/TEACHING.md](docs/TEACHING.md) for the webinar walkthrough, value definitions, model list, and honest comparison limits.
 
 ## Preview
 
-![Transaction classification screen with completed batches and a row's workflow steps](docs/screenshots/transaction-classification.png)
+![Step-by-step teaching view with metadata on hover](docs/screenshots/teaching-steps.jpg)
 
 The screenshot uses synthetic transactions.
 
@@ -52,11 +60,11 @@ flowchart LR
   E --> F[Transaction table]
 ```
 
-CSV parsing, row limits, amounts, and dates are handled in application code. Jev receives a structured transaction and a closed set of classification choices; it is not used to parse the CSV. Workflow SDK persists and resumes processing steps and emits row-level and batch progress. Runs process up to four rows per batch. Click a transaction to inspect its live step history. The table distinguishes classified rows, rows that need review, and failed rows. Sample transactions are synthetic. The app does not post accounting entries or move money.
+CSV parsing, row limits, amounts, and dates are handled in application code. Jev receives a structured transaction and a closed set of classification choices; it is not used to parse the CSV. Workflow SDK persists and resumes processing steps and emits row-level and batch progress. Runs process up to four rows per batch. Click a transaction to inspect its live workflow graph and recorded answers. Each rerun creates a new run; the browser retains up to 20 comparisons until input changes or reload. The table distinguishes classified rows, rows that need review, and failed rows. Sample transactions are synthetic. The app does not post accounting entries or move money.
 
 The browser retries a dropped progress connection up to three times, resuming from the last event index. The Workflow run continues when a connection drops. Reloading the page resets the current table and run selection in this starter.
 
-The EVE example assistant is a separate, protected agent that explains the demo. It does not classify transactions; the application workflow and Jev perform that work. Its source is under `agent/` and it can be explored locally with `bun run dev:eve`.
+The EVE personal assistant is a separate, protected agent with bounded calendar and task tools. It does not classify transactions; the application workflow and Jev perform that work. Its source is under `agent/` and it can be explored locally with `bun run dev:eve`.
 
 | Area | Location |
 | --- | --- |
@@ -97,7 +105,7 @@ The project pins versions in `package.json` and `bun.lock`, including Workflow S
 
 1. Fork or use this repository as a GitHub template, then import it into Vercel as a Next.js project. Keep the Bun lockfile and use the repository build command.
 2. Enable AI Gateway for the Vercel project. Use project OIDC or add `AI_GATEWAY_API_KEY` in Vercel project environment settings.
-3. Add a long random `DEMO_ACCESS_TOKEN` to every environment where people can start or inspect classification runs. Enter that same token in the demo page's password field when testing the deployed UI.
+3. Add a long random `DEMO_ACCESS_TOKEN` to every environment where people can start or inspect classification runs. Enter that same token in the demo's Settings password field when testing the deployed UI.
 4. If a future feature uses Supabase, add its project URL and publishable key to that environment. The transaction demo needs neither value.
 5. Deploy, then verify the generated EVE and Workflow routes, a synthetic classification run, streamed row updates, and the terminal state. A successful build alone does not establish that the model or workflow ran.
 

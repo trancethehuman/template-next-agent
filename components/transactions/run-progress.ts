@@ -1,4 +1,10 @@
-import type { ClassificationRow, ClassificationStatus, RunEvent, TransactionInput } from "@/lib/transactions/types";
+import type {
+  ClassificationRow,
+  ClassificationStatus,
+  RunEvent,
+  TransactionInput,
+  RunOptions,
+} from "@/lib/transactions/types";
 
 export const BATCH_SIZE = 4;
 
@@ -15,18 +21,31 @@ export interface RunProgress {
 }
 
 export function isTerminalStatus(status: ClassificationStatus): boolean {
-  return status === "classified" || status === "needs_review" || status === "failed";
+  return (
+    status === "classified" || status === "needs_review" || status === "failed"
+  );
+}
+
+export function summarizeRows(rows: readonly ClassificationRow[]) {
+  return {
+    total: rows.length,
+    completed: rows.filter((row) => isTerminalStatus(row.status)).length,
+    reviews: rows.filter((row) => row.status === "needs_review").length,
+  };
 }
 
 function statusOrder(status: ClassificationStatus): number {
   if (status === "queued") return 0;
   if (status === "rules") return 1;
   if (status === "jev") return 2;
-  return 3;
+  if (status === "evaluated") return 3;
+  if (status === "policy") return 4;
+  return 5;
 }
 
 function sameRow(first: ClassificationRow, second: ClassificationRow): boolean {
-  return first.id === second.id &&
+  return (
+    first.id === second.id &&
     first.date === second.date &&
     first.description === second.description &&
     first.amountMinor === second.amountMinor &&
@@ -36,10 +55,15 @@ function sameRow(first: ClassificationRow, second: ClassificationRow): boolean {
     first.movement === second.movement &&
     first.confidence === second.confidence &&
     first.source === second.source &&
-    first.reason === second.reason;
+    first.reason === second.reason &&
+    JSON.stringify(first.trace) === JSON.stringify(second.trace)
+  );
 }
 
-export function createRunProgress(transactions: TransactionInput[]): RunProgress {
+export function createRunProgress(
+  transactions: TransactionInput[],
+  options?: Pick<RunOptions, "modelId" | "useRules">,
+): RunProgress {
   const rows: ClassificationRow[] = transactions.map((transaction) => ({
     ...transaction,
     status: "queued",
@@ -48,19 +72,27 @@ export function createRunProgress(transactions: TransactionInput[]): RunProgress
     confidence: null,
     source: null,
     reason: null,
+    ...(options
+      ? { modelId: options.modelId, rulesApplied: options.useRules }
+      : {}),
   }));
   const batches: BatchProgress[] = [];
   for (let index = 0; index < transactions.length; index += BATCH_SIZE) {
     batches.push({
       index: batches.length,
-      rowIds: transactions.slice(index, index + BATCH_SIZE).map((transaction) => transaction.id),
+      rowIds: transactions
+        .slice(index, index + BATCH_SIZE)
+        .map((transaction) => transaction.id),
       status: "queued",
     });
   }
   return { rows, histories: new Map(), batches };
 }
 
-export function applyRunEvent(progress: RunProgress, event: RunEvent): RunProgress {
+export function applyRunEvent(
+  progress: RunProgress,
+  event: RunEvent,
+): RunProgress {
   if (event.type === "batch") {
     const batch = progress.batches[event.batchIndex];
     if (
@@ -76,13 +108,17 @@ export function applyRunEvent(progress: RunProgress, event: RunEvent): RunProgre
     return {
       ...progress,
       batches: progress.batches.map((candidate) =>
-        candidate.index === event.batchIndex ? { ...candidate, status: event.status } : candidate,
+        candidate.index === event.batchIndex
+          ? { ...candidate, status: event.status }
+          : candidate,
       ),
     };
   }
 
   if (event.type !== "row") return progress;
-  const currentIndex = progress.rows.findIndex((row) => row.id === event.row.id);
+  const currentIndex = progress.rows.findIndex(
+    (row) => row.id === event.row.id,
+  );
   if (currentIndex < 0) return progress;
   const current = progress.rows[currentIndex];
   if (isTerminalStatus(current.status) && !isTerminalStatus(event.row.status)) {
@@ -93,10 +129,10 @@ export function applyRunEvent(progress: RunProgress, event: RunEvent): RunProgre
   }
 
   const history = progress.histories.get(event.row.id) ?? [];
-  if (sameRow(current, event.row) && history.some((step) => sameRow(step, event.row))) {
-    return progress;
-  }
-  if (!isTerminalStatus(event.row.status) && history.some((step) => step.status === event.row.status)) {
+  if (
+    sameRow(current, event.row) &&
+    history.some((step) => sameRow(step, event.row))
+  ) {
     return progress;
   }
 
@@ -105,11 +141,16 @@ export function applyRunEvent(progress: RunProgress, event: RunEvent): RunProgre
     event.row.id,
     isTerminalStatus(event.row.status)
       ? [...history.filter((step) => !isTerminalStatus(step.status)), event.row]
-      : [...history, event.row],
+      : [
+          ...history.filter((step) => step.status !== event.row.status),
+          event.row,
+        ],
   );
   return {
     ...progress,
-    rows: progress.rows.map((row, index) => index === currentIndex ? event.row : row),
+    rows: progress.rows.map((row, index) =>
+      index === currentIndex ? event.row : row,
+    ),
     histories,
   };
 }

@@ -17,10 +17,11 @@ const eslintConfig = defineConfig([
     ".workflow/**",
     ".eve/**",
     ".output/**",
+    ".vercel/**",
     "app/.well-known/workflow/**",
   ]),
   {
-    files: ["app/**/*.{ts,tsx}", "components/transactions/**/*.{ts,tsx}"],
+    files: ["app/**/*.{ts,tsx}", "components/transactions/**/*.{ts,tsx}", "components/assistant/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       parserOptions: { ecmaFeatures: { jsx: true } },

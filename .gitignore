@@ -38,6 +38,7 @@ yarn-error.log*
 # vercel
 .vercel
 .workflow/
+/.workflow-data/
 .eve/
 /app/.well-known/workflow/
 
