@@ -1,129 +1,76 @@
 # template-next-agent
 
-An open source Next.js starter for small AI workflows. The home page is a directory of sample projects. The first sample, **Transaction classification**, lets you select synthetic transactions or upload a CSV, run a TypeSafe Jev classification workflow, and watch each row move through its processing states.
+An open source Next.js starter for AI agents that keep working after you close the tab. It has two examples: an always-on personal assistant and a transaction decision lab.
 
-This repository was created with `create-next-app` and uses Bun, Next.js 16, React 19, shadcn/ui, AI Elements, AI SDK 7, Vercel AI Gateway, EVE, and Workflow SDK 5. It also includes optional Supabase client helpers for future use cases. It is a learning and extension template, with real Jev calls when configured. Synthetic inputs are provided for the first run.
+![The assistant browsing the web in a cloud browser beside the chat](docs/screenshots/assistant-browser.jpg)
+
+## What's inside
+
+**Always-on assistant** (`/assistant`)
+
+- **Chat** with an [EVE](https://eve.dev/docs) agent. GPT-6.1 Terra is the default, and you can switch models.
+- **Cloud browser.** Ask it to look something up and it drives Chrome in a [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) that you watch live beside the chat. Drag the divider to make it bigger, take control yourself, or start it without the agent. Tabs and sign-ins are saved between sessions.
+- **Durable runs.** Tasks run on [Workflow SDK](https://useworkflow.dev): they sleep, wake on a schedule, wait for your approval, and survive restarts.
+- **Calendar watch.** Connect Google Calendar and it calls out conflicts, cancellations, and changes on its own schedule.
+
+| Always-on, explained with a mocked week | A live run, waiting for your approval |
+| --- | --- |
+| ![The always-on story waiting for approval to send a reply](docs/screenshots/assistant-always-on.jpg) | ![A durable workflow run paused at the review stage](docs/screenshots/assistant-live-run.jpg) |
+
+**Decision lab** (`/transactions`)
+
+Classify synthetic transactions or your own CSV with TypeSafe Jev. Step through each decision and compare models.
+
+![Step-by-step decision view with metadata on hover](docs/screenshots/teaching-steps.jpg)
+
+All screenshots use synthetic data.
 
 ## Quick start
 
-Install Node.js 24 and [Bun](https://bun.sh/docs/installation), then run:
+You need Node.js 24 and [Bun](https://bun.sh).
 
 ```bash
 git clone https://github.com/trancethehuman/template-next-agent.git
 cd template-next-agent
 bun install
 cp .env.local.example .env.local
-```
-
-Open `.env.local` and fill in `AI_GATEWAY_API_KEY` with your own [Vercel AI Gateway key](https://vercel.com/docs/ai-gateway). Do not put the key in `NEXT_PUBLIC_*` variables. The file is ignored by Git; `.env.local.example` contains names and guidance only. An agent setting up this repo should create the local file from the example, identify missing variable names, and ask the operator to enter the values directly. Never copy credentials from a different repository or commit a populated file.
-
-```bash
 bun run dev
 ```
 
-The dev server binds to `127.0.0.1`. Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Select **Transaction classification** from the directory or go directly to [http://localhost:3000/transactions](http://localhost:3000/transactions). Choose a model, look at its compact stats card, add synthetic transactions, and follow the Next buttons to run the demo and view results. Local development uses server configuration automatically; no token entry is needed. Deployed demos accept the access token in Settings. AI Gateway authentication is required for live Jev decisions.
+Open [http://localhost:3000](http://localhost:3000). Fill in `.env.local` for what you want to try:
 
-The **Always-on assistant** example is at [http://localhost:3000/assistant](http://localhost:3000/assistant). [Configure Google sign-in](docs/AUTH.md), then chat with the EVE agent, delegate meeting preparation, and inspect your durable tasks in the inbox. Clones accept verified Google accounts by default; an optional environment setting restricts a deployment to a Google Workspace organization. Each account has separate chats, tasks, preferences, and Calendar consent. The synthetic rehearsal needs no Calendar credentials and demonstrates start, sleep/wake, pause/resume, approvals, source replay, and cancellation. Calendar access defaults to read-only; an enabled installation can create private events after the signed-in user approves each exact proposal. See [the assistant guide](docs/ASSISTANT.md) and [calendar setup](docs/ASSISTANT-CALENDAR.md).
-
-## Webinar teaching lab
-
-The numbered sidebar follows **Choose a model → Add transactions → Run the demo → View results → Compare models**, with **Full speed** beside the demo and **Settings** separate. Each view has one task, with processing details in a side panel. The lab includes an AI Elements decision graph, step-by-step playback of actual events, **Full speed**, and per-row model reruns. A plain-language explanation follows the active step. Hover any node for metadata, scores, probabilities, and timing, or click to open its full details. Inspect Choice distributions, an evidence Score, boolean P(true), provider confidence when returned, timing, and the code's review policy. Compare Jev, Microsoft Decision 1, OpenAI Decisions API (GPT-6 Luna), Liquid D1, and Laya using the same questions. Models without Gateway zero-retention support require explicitly acknowledged synthetic data.
-
-Use the downloadable mock Amex-style CSV for a statement-import demonstration. See [docs/TEACHING.md](docs/TEACHING.md) for the webinar walkthrough, value definitions, model list, and honest comparison limits.
-
-## Preview
-
-![Step-by-step teaching view with metadata on hover](docs/screenshots/teaching-steps.jpg)
-
-The screenshot uses synthetic transactions.
-
-## Environment
-
-| Variable | Local | Vercel | Purpose |
-| --- | --- | --- | --- |
-| `AI_GATEWAY_API_KEY` | Set for live model calls | Optional if project OIDC is enabled | Authenticates Jev and EVE model calls through AI Gateway. |
-| `WORKFLOW_LOCAL_HEADERS_TIMEOUT_MS` | Keep the example value `90000` | Not needed | Gives the local Workflow queue time for slower Jev responses without replaying steps. Restart `bun run dev` after changing it. |
-| `DEMO_ACCESS_TOKEN` | Optional for local-only use | Required for an internet-facing demo | Bearer token for protected classification routes. Use a long random value and keep it server-side. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Optional | Optional | Your own Supabase project URL for future features. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional | Optional | Browser-safe publishable key for that project. Set together with the URL. |
-
-On Vercel, [project OIDC](https://vercel.com/docs/oidc) can authenticate AI Gateway calls without a static API key. Link the project and use `bunx vercel@59.9.1 env pull .env.local` when developing with OIDC; its token is short lived and must be refreshed. The pull can replace the existing local file, so inspect the resulting variable names and restore any separate local settings. Keep `.env.local` out of Git. The production access token remains a separate setting.
-
-## How the sample works
-
-```mermaid
-flowchart LR
-  A[Mock rows or CSV] --> B[Parse and validate]
-  B --> C[Start Workflow run]
-  C --> D[Rules and Jev evaluation]
-  D --> E[Progress stream]
-  E --> F[Transaction table]
-```
-
-CSV parsing, row limits, amounts, and dates are handled in application code. Jev receives a structured transaction and a closed set of classification choices; it is not used to parse the CSV. Workflow SDK persists and resumes processing steps and emits row-level and batch progress. Runs process up to four rows per batch. Click a transaction to inspect its live workflow graph and recorded answers. Each rerun creates a new run; the browser retains up to 20 comparisons until input changes or reload. The table distinguishes classified rows, rows that need review, and failed rows. Sample transactions are synthetic. The app does not post accounting entries or move money.
-
-The browser retries a dropped progress connection up to three times, resuming from the last event index. The Workflow run continues when a connection drops. Reloading the page resets the current table and run selection in this starter.
-
-The EVE personal assistant is a separate, protected agent with bounded calendar and task tools. It does not classify transactions; the application workflow and Jev perform that work. Its source is under `agent/` and it can be explored locally with `bun run dev:eve`.
-
-| Area | Location |
+| Feature | Variables |
 | --- | --- |
-| Directory and sample page | `app/page.tsx`, `app/transactions/` |
-| CSV and transaction shape | `lib/transactions/` |
-| Optional Supabase clients | `lib/supabase/` |
-| Rules and Jev judgment | `lib/classification/` |
-| Durable processing | `workflows/` |
-| EVE agent | `agent/` |
-| shadcn and AI Elements source | `components/ui/`, `components/ai-elements/` |
-| Agent guidance | `AGENTS.md`, `skills/` |
+| Any model call | `AI_GATEWAY_API_KEY` ([Vercel AI Gateway](https://vercel.com/docs/ai-gateway)) |
+| Assistant sign-in | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` ([setup](docs/AUTH.md)) |
+| Cloud browser | `VERCEL_OIDC_TOKEN` from `vercel link` and `vercel env pull` |
+| Public deployment | `DEMO_ACCESS_TOKEN` for the decision lab |
 
-The exact supported CSV headers and limits are documented in [docs/CSV.md](docs/CSV.md). The sample does not require a bank connection or access to another application's data.
-
-Supabase is optional and is not used to save or classify transactions. The starter includes browser and server client helpers but no project, database schema, migration, or Auth flow. To use it for a new sample, see [docs/SUPABASE.md](docs/SUPABASE.md).
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the separate responsibilities of Jev, EVE, and Workflow SDK.
+`.env.local.example` lists every option. Never commit `.env.local`.
 
 ## Commands
 
-Use Bun for the project:
-
 | Command | Purpose |
 | --- | --- |
-| `bun run dev` | Run Next.js and the integrated development services. |
-| `bun run dev:eve` | Run the EVE agent development interface. |
+| `bun run dev` | Run the app, the agent, and local workflows. |
 | `bun run test` | Run tests. |
-| `bun run lint` | Run code lint. |
-| `bun run lint:design` | Run the design and shadcn lint checks. |
-| `bun run typecheck` | Check TypeScript. |
-| `bun run build` | Build the Next.js application. |
-| `bun run build:eve` | Build the example EVE agent locally. |
-| `bun run build:vercel` | Assemble Vercel output after linking a project. |
+| `bun run lint` and `bun run typecheck` | Check the code. |
+| `bun run build` | Build for production. |
 
-The project pins versions in `package.json` and `bun.lock`, including Workflow SDK `5.0.0-beta.55`. Run `bun install` after cloning. An unversioned `bun add workflow` currently selects the older 4.x line, so change that pin only alongside the installed Workflow docs and a full build.
+## Deploy
 
-## Deploying on Vercel
+Import the repository into Vercel, enable AI Gateway, and add the variables above. Read [docs/SECURITY.md](docs/SECURITY.md) before opening it to other people.
 
-1. Fork or use this repository as a GitHub template, then import it into Vercel as a Next.js project. Keep the Bun lockfile and use the repository build command.
-2. Enable AI Gateway for the Vercel project. Use project OIDC or add `AI_GATEWAY_API_KEY` in Vercel project environment settings.
-3. Add a long random `DEMO_ACCESS_TOKEN` to every environment where people can start or inspect classification runs. Enter that same token in the demo's Settings password field when testing the deployed UI.
-4. If a future feature uses Supabase, add its project URL and publishable key to that environment. The transaction demo needs neither value.
-5. Deploy, then verify the generated EVE and Workflow routes, a synthetic classification run, streamed row updates, and the terminal state. A successful build alone does not establish that the model or workflow ran.
+## Learn more
 
-For CLI setup, run `bunx vercel@59.9.1 login`, `bunx vercel@59.9.1 link`, and then `bun run build:vercel`. Vercel's Workflow World is used on Vercel; local development uses the local World. Review [docs/SECURITY.md](docs/SECURITY.md) before opening a public instance to other users.
+- [Assistant guide](docs/ASSISTANT.md), [calendar setup](docs/ASSISTANT-CALENDAR.md), and [sign-in](docs/AUTH.md)
+- [Decision lab walkthrough](docs/TEACHING.md) and [CSV format](docs/CSV.md)
+- [Architecture](docs/ARCHITECTURE.md) and [security](docs/SECURITY.md)
+- [Agent skills](skills/README.md) and [AGENTS.md](AGENTS.md) for coding agents
+- [Contributing](docs/CONTRIBUTING.md)
 
-## Agent skills and source docs
-
-Portable agent skills are versioned under [`skills/`](skills/README.md). Most are complete upstream folders; two are original link guides because their upstream redistribution terms were unclear. `.agents/skills` is a relative symlink to the same directory for coding-agent discovery. Use the relevant skill before editing an integration, then verify APIs against the installed package documentation:
-
-- `node_modules/next/dist/docs/`
-- `node_modules/ai/docs/`
-- `node_modules/eve/docs/README.md`
-- `node_modules/workflow/docs/`
-
-Skills and project instructions are guidance, while the lockfile and installed documentation define the actual API versions. Third-party attribution and licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Built with Next.js 16, React 19, AI SDK 7, EVE, Workflow SDK 5, Vercel Sandbox, agent-browser, shadcn/ui, and AI Elements.
 
 ## License
 
-Original project code and documentation are licensed under [AGPL-3.0](LICENSE). Copied third-party skills retain their own notices and terms as described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-To propose changes, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+[AGPL-3.0](LICENSE). Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
