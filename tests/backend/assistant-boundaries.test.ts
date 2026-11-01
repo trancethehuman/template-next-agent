@@ -7,14 +7,14 @@ function isolated<T>(source: string, nodeEnvironment = "production"): T {
   const setup = `
     import {encode as encodeFixtureSession} from "next-auth/jwt";
     import {signAssistantServiceToken as signFixtureService} from "./lib/auth/request.ts";
-    const assistantFixtureActor={id:"google:synthetic-boundary-owner",email:"synthetic-owner@agiventures.ca"};
+    const assistantFixtureActor={id:"google:synthetic-boundary-owner",email:"synthetic-owner@workspace.example"};
     const assistantFixtureAuthorization="Bearer "+await signFixtureService(assistantFixtureActor);
-    const assistantFixtureSession=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"authjs.session-token",token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,sessionKind:"assistant-user",workspaceDomain:"agiventures.ca"}});
+    const assistantFixtureSession=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"authjs.session-token",token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,sessionKind:"assistant-user",workspaceDomain:"workspace.example"}});
     const assistantFixtureCookie="authjs.session-token="+assistantFixtureSession;
   `;
   const result = Bun.spawnSync([process.execPath, "-e", setup + source], {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: nodeEnvironment, AUTH_SECRET: "synthetic-boundary-auth-secret-at-least-32-characters", AUTH_GOOGLE_WORKSPACE_DOMAIN: "agiventures.ca", DEMO_ACCESS_TOKEN: "synthetic-boundary-owner-token" },
+    env: { ...process.env, NODE_ENV: nodeEnvironment, AUTH_SECRET: "synthetic-boundary-auth-secret-at-least-32-characters", AUTH_GOOGLE_WORKSPACE_DOMAIN: "workspace.example", DEMO_ACCESS_TOKEN: "synthetic-boundary-owner-token" },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -103,7 +103,7 @@ test("assistant read, stream, and cancellation reject unknown, foreign, legacy, 
       if(id==="wrun_synthetic_unknown")throw new WorkflowRunNotFoundError(id);
       const workflowName=id==="wrun_synthetic_other_type"?"workflow//./workflows/classify-transactions//classifyTransactionsWorkflow":"workflow//./workflows/assistant-task//assistantTaskWorkflow";
       const {assistantOwnerAttributes}=await import("./lib/assistant/ownership.ts");
-      const attributes=id==="wrun_synthetic_legacy"?{}:assistantOwnerAttributes(id==="wrun_synthetic_foreign"?{id:"google:synthetic-other-user",email:"synthetic-other@agiventures.ca"}:assistantFixtureActor);
+      const attributes=id==="wrun_synthetic_legacy"?{}:assistantOwnerAttributes(id==="wrun_synthetic_foreign"?{id:"google:synthetic-other-user",email:"synthetic-other@workspace.example"}:assistantFixtureActor);
       return {runId:id,workflowName,attributes};
     }}})}));
     mock.module("workflow/api",()=>({
@@ -166,7 +166,7 @@ test("production EVE proxy replaces caller-supplied origin assertions with an ac
     const headers={"x-assistant-original-origin":response.headers.get("x-middleware-request-x-assistant-original-origin"),"x-assistant-origin-proof":response.headers.get("x-middleware-request-x-assistant-origin-proof")};
     const forwarded=new Request("http://127.0.0.1:2000/eve/v1/session",{headers});
     const verifiedOrigin=await readAssistantProxyOrigin(forwarded,assistantFixtureActor);
-    const wrongActorOrigin=await readAssistantProxyOrigin(forwarded,{id:"google:different-user",email:"different@agiventures.ca"});
+    const wrongActorOrigin=await readAssistantProxyOrigin(forwarded,{id:"google:different-user",email:"different@workspace.example"});
     const changedOrigin=await readAssistantProxyOrigin(new Request(forwarded,{headers:{...headers,"x-assistant-original-origin":"https://attacker.example"}}),assistantFixtureActor);
     console.log(JSON.stringify({forwarded:response.headers.get("x-middleware-next")==="1",stampedOrigin:response.headers.get("x-middleware-request-x-assistant-original-origin"),verifiedOrigin,wrongActorOrigin,changedOrigin}));
   `);
@@ -180,9 +180,9 @@ test("production EVE proxy replaces caller-supplied origin assertions with an ac
 test("assistant auth accepts only a signed eligible session or an unexpired delegated actor", () => {
   const results = isolated<Array<{name: string; status: number; actorId?: string}>>(`
     const {requireAssistantActor}=await import("./lib/auth/request.ts");
-    const expired=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",maxAge:-3600,token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,workspaceDomain:"agiventures.ca",sessionKind:"assistant-service"}});
-    const foreign=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",token:{sub:"google:foreign-user",email:"foreign@example.test",workspaceDomain:"agiventures.ca",sessionKind:"assistant-service"}});
-    const wrongKind=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,workspaceDomain:"agiventures.ca",sessionKind:"assistant-user"}});
+    const expired=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",maxAge:-3600,token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,workspaceDomain:"workspace.example",sessionKind:"assistant-service"}});
+    const foreign=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",token:{sub:"google:foreign-user",email:"foreign@example.test",workspaceDomain:"workspace.example",sessionKind:"assistant-service"}});
+    const wrongKind=await encodeFixtureSession({secret:process.env.AUTH_SECRET,salt:"assistant-internal-service-v1",token:{sub:assistantFixtureActor.id,email:assistantFixtureActor.email,workspaceDomain:"workspace.example",sessionKind:"assistant-user"}});
     const results=[];
     for(const [name,url,method,headers] of [
       ["signed-cookie","https://demo.example/api/assistant/tasks","GET",{cookie:assistantFixtureCookie}],

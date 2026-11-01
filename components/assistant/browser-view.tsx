@@ -27,7 +27,7 @@ export type BrowserState =
   | { state: "stopped"; saved: boolean }
   | { state: "live"; viewUrl: string; controlUrl: string; page?: BrowserPage; sleepsAt?: string };
 
-const keepAliveMs = 2 * 60_000;
+type Busy = "open" | "stop" | "awake";
 
 /** Same URLs means the live view keeps its connection instead of reloading. */
 function settle(current: BrowserState | undefined, next: BrowserState): BrowserState {
@@ -37,18 +37,32 @@ function settle(current: BrowserState | undefined, next: BrowserState): BrowserS
 }
 
 /** One short line for the header: the page in front, or what the browser is doing. */
-export function browserSubtitle(browser: BrowserState, busy?: "open" | "stop"): string | undefined {
+export function browserSubtitle(browser: BrowserState, busy?: Busy): string | undefined {
   if (busy === "stop") return "Saving…";
   if (browser.state === "live") return browser.page?.title;
   if (busy === "open" || browser.state === "starting") return "Starting…";
   return browser.state === "stopped" ? "Asleep, tabs saved" : "Off";
 }
 
+/** Within this long of sleeping, the panel offers Keep awake. */
+const sleepWarningMs = 5 * 60_000;
+
+/** When a live browser sleeps without activity, and whether that is soon. */
+export function browserSleepNote(browser: BrowserState | undefined, checkedAt: number): { at: string; soon: boolean } | undefined {
+  if (browser?.state !== "live" || !browser.sleepsAt) return undefined;
+  const sleepsAt = new Date(browser.sleepsAt);
+  return {
+    at: sleepsAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+    soon: sleepsAt.getTime() - checkedAt <= sleepWarningMs,
+  };
+}
+
 /**
  * The user's cloud browser beside the chat. Anyone can start it from here
- * without the assistant; it sleeps with its tabs and sign-ins saved, and
- * resumes from the same disk. The live view grows with its panel; the large
- * view is where the user can take control, for example to sign in or pay.
+ * without the assistant. It sleeps after an idle window, with its tabs and
+ * sign-ins saved, and resumes from the same disk; watching alone never keeps
+ * it awake. The live view grows with its panel; the large view is where the
+ * user can take control, for example to sign in or pay.
  */
 export function BrowserView({
   watching,
@@ -61,11 +75,13 @@ export function BrowserView({
 }) {
   const [browser, setBrowser] = useState<BrowserState>();
   const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState<"open" | "stop">();
+  const [busy, setBusy] = useState<Busy>();
+  const [checkedAt, setCheckedAt] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [control, setControl] = useState(false);
   const live = browser?.state === "live" ? browser : undefined;
   const starting = busy === "open" || browser?.state === "starting";
+  const sleep = browserSleepNote(browser, checkedAt);
 
   // Poll quickly while something is happening; otherwise check now and then.
   const fast = watching || starting || Boolean(live) || busy === "stop";
@@ -77,6 +93,7 @@ export function BrowserView({
         const next = await assistantRequest<BrowserState>("/api/assistant/browser");
         if (active) {
           setBrowser((current) => settle(current, next));
+          setCheckedAt(Date.now());
           setError(undefined);
         }
       } catch (cause) {
@@ -92,31 +109,25 @@ export function BrowserView({
     };
   }, [fast]);
 
-  // While the owner can see it, the browser stays awake instead of sleeping mid-look.
-  useEffect(() => {
-    if (!live) return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible")
-        void assistantRequest("/api/assistant/browser", { method: "POST", body: JSON.stringify({ action: "keepalive" }) }).catch(() => undefined);
-    }, keepAliveMs);
-    return () => clearInterval(timer);
-  }, [live]);
-
-  async function open() {
-    setBusy("open");
+  /** `open` starts or resumes the browser; `keepalive` pushes its sleep time a full idle window out. */
+  async function post(action: "open" | "keepalive") {
+    setBusy(action === "open" ? "open" : "awake");
     setError(undefined);
     try {
       const next = await assistantRequest<BrowserState>("/api/assistant/browser", {
         method: "POST",
-        body: JSON.stringify({ action: "open" }),
+        body: JSON.stringify({ action }),
       });
       setBrowser((current) => settle(current, next));
+      setCheckedAt(Date.now());
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
       setBusy(undefined);
     }
   }
+  const open = () => post("open");
+  const keepAwake = () => post("keepalive");
 
   async function stop() {
     setBusy("stop");
@@ -210,6 +221,14 @@ export function BrowserView({
                   : "Chrome in a cloud sandbox, for you or the assistant."}
         </p>
       )}
+      {live && sleep?.soon && (
+        <div className="flex items-center gap-2 border-t py-1 pr-1.5 pl-3 text-xs text-muted-foreground" role="status">
+          <span className="min-w-0 flex-1 truncate">Sleeps at {sleep.at} without activity</span>
+          <Button size="sm" variant="ghost" disabled={busy !== undefined} onClick={() => void keepAwake()}>
+            Keep awake
+          </Button>
+        </div>
+      )}
       {error && <p className="border-t px-3 py-2 text-xs text-destructive">{error}</p>}
 
       <Dialog
@@ -230,6 +249,7 @@ export function BrowserView({
                   : control
                     ? "You have control. Finish sign-in or payment yourself; the assistant never types those."
                     : "Watch only. Take control to use it yourself."}
+              {live && sleep && ` It sleeps at ${sleep.at} unless you or the assistant use it.`}
             </DialogDescription>
           </DialogHeader>
           <div className={cn("flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-md bg-black", control && "ring-2 ring-signal")}>
@@ -251,6 +271,9 @@ export function BrowserView({
             <Button disabled={!live} variant={control ? "outline" : "default"} onClick={() => setControl((value) => !value)}>
               {control ? <EyeIcon data-icon="inline-start" /> : <MousePointerClickIcon data-icon="inline-start" />}
               {control ? "Watch only" : "Take control"}
+            </Button>
+            <Button variant="ghost" disabled={!live || busy !== undefined} onClick={() => void keepAwake()}>
+              Keep awake
             </Button>
             <Button variant="ghost" disabled={!live || busy === "stop"} onClick={() => void stop()}>
               <SquareIcon data-icon="inline-start" />

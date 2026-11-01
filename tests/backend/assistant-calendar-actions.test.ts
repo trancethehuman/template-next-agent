@@ -32,7 +32,7 @@ function runCalendarAction(
       return {id:"synthetic-managed-event",title:draft.summary,start:draft.start,end:draft.end,timeZone:draft.timeZone,allDay:false,htmlUrl:"https://calendar.google.com/calendar/event?eid=synthetic-managed-event",managed:true,reused:${JSON.stringify(provider)}==="reused"};
     }}));
     const {assistantTaskWorkflow}=await import("./workflows/assistant-task.ts");
-    try{await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@agiventures.ca"},taskId:"synthetic-action-identity",kind:"calendar_event",eventDraft:${JSON.stringify(draft)},title:"Create calendar event",prompt:"Create after owner approval",mode:"calendar",approvalRequired:false,delaySeconds:0,manualStart:false,sourceVersion:1,maxChecks:1,preference:{bulletCount:3,includeLinks:true}})}catch(error){failure=error.message}
+    try{await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@workspace.example"},taskId:"synthetic-action-identity",kind:"calendar_event",eventDraft:${JSON.stringify(draft)},title:"Create calendar event",prompt:"Create after owner approval",mode:"calendar",approvalRequired:false,delaySeconds:0,manualStart:false,sourceVersion:1,maxChecks:1,preference:{bulletCount:3,includeLinks:true}})}catch(error){failure=error.message}
     console.log(JSON.stringify({events,writes,failure,providerActors}));
   `;
   const result = Bun.spawnSync([process.execPath, "-e", code], {
@@ -60,11 +60,11 @@ describe("calendar event owner approval", () => {
       const {createAssistantTask}=await import("./lib/assistant/tasks.ts");
       const start=Date.now()+86400000;const draft={summary:"  Synthetic private event  ",description:" Exact reviewed description ",start:new Date(start).toISOString(),end:new Date(start+1800000).toISOString(),timeZone:"America/Toronto"};
       process.env.ASSISTANT_CALENDAR_WRITE_ENABLED="true";
-      await createAssistantTask({id:"google:synthetic-alice",email:"alice@agiventures.ca"},{kind:"calendar_event",eventDraft:draft,mode:"rehearsal",approvalRequired:false,manualStart:true,delaySeconds:3600,maxChecks:5});
+      await createAssistantTask({id:"google:synthetic-alice",email:"alice@workspace.example"},{kind:"calendar_event",eventDraft:draft,mode:"rehearsal",approvalRequired:false,manualStart:true,delaySeconds:3600,maxChecks:5});
       process.env.ASSISTANT_CALENDAR_WRITE_ENABLED="false";
-      try{await createAssistantTask({id:"google:synthetic-alice",email:"alice@agiventures.ca"},{kind:"calendar_event",eventDraft:draft})}catch(error){errors.push(error.status)}
+      try{await createAssistantTask({id:"google:synthetic-alice",email:"alice@workspace.example"},{kind:"calendar_event",eventDraft:draft})}catch(error){errors.push(error.status)}
       process.env.ASSISTANT_CALENDAR_WRITE_ENABLED="true";
-      try{await createAssistantTask({id:"google:synthetic-alice",email:"alice@agiventures.ca"},{kind:"calendar_event",eventDraft:{...draft,start:"2000-01-01T10:00:00Z",end:"2000-01-01T11:00:00Z"}})}catch(error){errors.push(error.status)}
+      try{await createAssistantTask({id:"google:synthetic-alice",email:"alice@workspace.example"},{kind:"calendar_event",eventDraft:{...draft,start:"2000-01-01T10:00:00Z",end:"2000-01-01T11:00:00Z"}})}catch(error){errors.push(error.status)}
       console.log(JSON.stringify({started,errors}));
     `;
     const result = Bun.spawnSync([process.execPath, "-e", code], {
@@ -155,7 +155,7 @@ describe("calendar event owner approval", () => {
       { draft, actionId: "synthetic-action-identity" },
     ]);
     expect(result.providerActors).toEqual([
-      { id: "google:synthetic-alice", email: "alice@agiventures.ca" },
+      { id: "google:synthetic-alice", email: "alice@workspace.example" },
     ]);
     const approvedIndex = result.events.findIndex(
       (event) => event.calendarDecision === "approved",

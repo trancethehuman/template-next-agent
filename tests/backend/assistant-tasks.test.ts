@@ -83,7 +83,7 @@ function runOrchestration(actions: string[], maxChecks = 3) {
     const hook={async getConflict(){return null},[Symbol.dispose](){},[Symbol.asyncIterator](){return this},async next(){let action=actions.shift();if(!action)throw new Error("Missing test control");const current=events.filter(event=>event.status).at(-1)?.id;if(action==="approve"&&!firstApproval)firstApproval=current;const stale=action==="stale-approve";if(stale)action="approve";return {done:false,value:{action,requestId:"command_"+(++commandIndex),checkpointId:stale?firstApproval:current}}}};
     mock.module("workflow",()=>({FatalError:class extends Error{},getStepMetadata:()=>({stepId:"step_"+(++step)}),getWritable:()=>({getWriter:()=>({async write(line){events.push(JSON.parse(line))},releaseLock(){}}),async close(){}}),createHook:()=>hook,sleep:()=>new Promise(()=>{})}));
     const {assistantTaskWorkflow}=await import("./workflows/assistant-task.ts");
-    await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@agiventures.ca"},taskId:"synthetic-test",title:"Synthetic meeting prep",prompt:"Prepare",mode:"rehearsal",delaySeconds:0,manualStart:false,approvalRequired:true,sourceVersion:1,maxChecks:${maxChecks},preference:{bulletCount:3,includeLinks:true}});
+    await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@workspace.example"},taskId:"synthetic-test",title:"Synthetic meeting prep",prompt:"Prepare",mode:"rehearsal",delaySeconds:0,manualStart:false,approvalRequired:true,sourceVersion:1,maxChecks:${maxChecks},preference:{bulletCount:3,includeLinks:true}});
     console.log(JSON.stringify(events));
   `;
   const result = Bun.spawnSync([process.execPath, "-e", code], {
@@ -106,7 +106,7 @@ function runUnavailableCalendar(kind: "empty" | "error") {
     mock.module("./lib/assistant/calendar.ts",()=>({CalendarIntegrationError,listCalendarEvents:async()=>{if(${JSON.stringify(kind)}==="error")throw new CalendarIntegrationError("unavailable","Private provider diagnostics must not reach the inbox");return {events:[],calendarName:"Synthetic test calendar",timeZone:"America/Toronto",truncated:false}}}));
     mock.module("ai",()=>({generateText:async()=>{modelCalls++;throw new Error("A missing calendar must never call the model")}}));
     const {assistantTaskWorkflow}=await import("./workflows/assistant-task.ts");
-    try{await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@agiventures.ca"},taskId:"missing-source-fixture",title:"Calendar availability test",prompt:"Prepare for my meeting",mode:"calendar",delaySeconds:0,manualStart:false,approvalRequired:false,sourceVersion:1,maxChecks:1,preference:{bulletCount:3,includeLinks:true}})}catch(caught){error=caught.message}
+    try{await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@workspace.example"},taskId:"missing-source-fixture",title:"Calendar availability test",prompt:"Prepare for my meeting",mode:"calendar",delaySeconds:0,manualStart:false,approvalRequired:false,sourceVersion:1,maxChecks:1,preference:{bulletCount:3,includeLinks:true}})}catch(caught){error=caught.message}
     console.log(JSON.stringify({events,modelCalls,error}));
   `;
   const result = Bun.spawnSync([process.execPath, "-e", code], {
@@ -166,7 +166,7 @@ describe("meeting preparation outcomes", () => {
       }}));
       mock.module("ai",()=>({generateText:async options=>{modelCalls.push(options);return {text:"- Synthetic model response grounded in the test fixture."}}}));
       const {assistantTaskWorkflow}=await import("./workflows/assistant-task.ts");
-      await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@agiventures.ca"},taskId:"live-fixture",title:"Live calendar test",prompt:"Help me decide which launch questions to bring",mode:"calendar",delaySeconds:0,manualStart:false,approvalRequired:true,sourceVersion:1,maxChecks:3,preference:{bulletCount:3,includeLinks:true}});
+      await assistantTaskWorkflow({owner:{id:"google:synthetic-alice",email:"alice@workspace.example"},taskId:"live-fixture",title:"Live calendar test",prompt:"Help me decide which launch questions to bring",mode:"calendar",delaySeconds:0,manualStart:false,approvalRequired:true,sourceVersion:1,maxChecks:3,preference:{bulletCount:3,includeLinks:true}});
       console.log(JSON.stringify({events,modelCalls:modelCalls.map(call=>({prompt:JSON.parse(call.prompt),maxOutputTokens:call.maxOutputTokens,toolNames:Object.keys(call.tools??{}),system:call.system})),reads,providerActors}));
     `;
     const processResult = Bun.spawnSync([process.execPath, "-e", code], {

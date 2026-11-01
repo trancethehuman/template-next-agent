@@ -5,7 +5,7 @@ import { createTaskBackend } from "../../agent/lib/task-backend";
 import controlTask from "../../agent/tools/control_task";
 import { CalendarIntegrationError } from "../../lib/assistant/calendar";
 
-const actor = { id: "google:synthetic-owner", email: "synthetic@agiventures.ca" };
+const actor = { id: "google:synthetic-owner", email: "synthetic@workspace.example" };
 const now = () => new Date("2026-10-30T16:00:00Z");
 const draft = {
   summary: "Synthetic calendar write rehearsal",

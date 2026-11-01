@@ -2,7 +2,7 @@ import { requireAssistantActor } from "@/lib/auth/request";
 import {
   BrowserError,
   browserStatus,
-  keepBrowserAlive,
+  keepBrowserAwake,
   openBrowser,
   stopBrowser,
 } from "@/lib/assistant/browser";
@@ -32,8 +32,9 @@ export async function GET(request: Request) {
 }
 
 /**
- * `open` starts the browser, or resumes it from its saved disk. `keepalive`
- * gives a running browser more time while its owner is watching.
+ * `open` starts the browser, or resumes it from its saved disk. `keepalive` is
+ * the owner's Keep awake: a running browser gets a full idle window from now.
+ * The page never sends it on its own, so an open tab cannot keep it running.
  */
 export async function POST(request: Request) {
   const actor = await requireAssistantActor(request, { allowService: false });
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     return assistantJson({ error: "Choose open or keepalive." }, 400);
   try {
     if (action === "open") await openBrowser(actor);
-    else await keepBrowserAlive(actor);
+    else await keepBrowserAwake(actor);
     return assistantJson(await browserStatus(actor));
   } catch (error) {
     return browserFailure(error);

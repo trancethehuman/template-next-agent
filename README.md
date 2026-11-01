@@ -9,7 +9,7 @@ An open source Next.js starter for AI agents that keep working after you close t
 **Always-on assistant** (`/assistant`)
 
 - **Chat** with an [EVE](https://eve.dev/docs) agent. GPT-6.1 Terra is the default, and you can switch models.
-- **Cloud browser.** Ask it to look something up and it drives Chrome in a [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) that you watch live beside the chat. Drag the divider to make it bigger, take control yourself, or start it without the agent. Tabs and sign-ins are saved between sessions.
+- **Cloud browser.** Ask it to look something up and it drives Chrome in a [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) that you watch live beside the chat. Drag the divider to make it bigger, take control yourself, or start it without the agent. It sleeps after 30 idle minutes, with tabs and sign-ins saved for next time.
 - **Durable runs.** Tasks run on [Workflow SDK](https://useworkflow.dev): they sleep, wake on a schedule, wait for your approval, and survive restarts.
 - **Calendar watch.** Connect Google Calendar and it calls out conflicts, cancellations, and changes on its own schedule.
 

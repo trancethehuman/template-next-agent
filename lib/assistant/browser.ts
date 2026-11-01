@@ -22,10 +22,8 @@ import {
 
 const novncPort = 6080;
 const display = { DISPLAY: ":99" };
-// A session ends after this long without being kept alive, saving its disk first.
-const sessionTimeoutMs = 20 * 60_000;
-const keepAliveBelowMs = 8 * 60_000;
-const keepAliveByMs = 15 * 60_000;
+// A session sleeps, saving its disk first, once nobody has used it for this long.
+const defaultIdleMinutes = 30;
 // Chrome's debugging port stays inside the sandbox; only the live view is exposed.
 const cdpPort = 9222;
 const savedTabs = "$HOME/.assistant-browser/tabs.json";
@@ -50,6 +48,17 @@ export function browserEnabled(environment: Record<string, string | undefined> =
 }
 
 /** A stable, non-reversible sandbox name per account. Names are unique per Vercel project. */
+/**
+ * How long a browser stays up after its last use: a start, a resume, an agent
+ * action, or the owner's Keep awake. Watching does not count, so a forgotten
+ * tab cannot keep it running. Between 5 and 60 minutes.
+ */
+export function browserIdleMs(environment: Record<string, string | undefined> = process.env): number {
+  const minutes = Number(environment.ASSISTANT_BROWSER_IDLE_MINUTES);
+  const chosen = Number.isFinite(minutes) && minutes > 0 ? Math.min(Math.max(minutes, 5), 60) : defaultIdleMinutes;
+  return chosen * 60_000;
+}
+
 export function browserSandboxName(actor: Pick<AssistantActor, "id">): string {
   return `assistant-browser-${createHash("sha256").update(`assistant-browser:${actor.id}`).digest("hex").slice(0, 24)}`;
 }
@@ -172,7 +181,7 @@ export async function openBrowser(actor: Pick<AssistantActor, "id">): Promise<Sa
       persistent: true,
       resume: true,
       ports: [novncPort],
-      timeout: sessionTimeoutMs,
+      timeout: browserIdleMs(),
       resources: { vcpus: 2 },
       keepLastSnapshots: { count: 1 },
       tags: { app: "assistant-browser" },
@@ -181,7 +190,7 @@ export async function openBrowser(actor: Pick<AssistantActor, "id">): Promise<Sa
     throw new BrowserError("unavailable", "The cloud browser could not start. Check the Vercel Sandbox credentials (VERCEL_OIDC_TOKEN locally), then try again.");
   }
   if ((await bash(sandbox, healthScript)).exitCode === 0) {
-    await extendIfNeeded(sandbox);
+    await markActive(sandbox);
     return sandbox;
   }
   // The first start for an account installs Chrome and the desktop, about a minute.
@@ -192,7 +201,10 @@ export async function openBrowser(actor: Pick<AssistantActor, "id">): Promise<Sa
   // let the health check, not the command, decide when it is ready.
   await sandbox.runCommand({ cmd: "bash", args: ["-c", startScript], env: { ...agentBrowserEnv, VNC_PASSWORD: password }, detached: true });
   for (let attempt = 0; attempt < 60; attempt++) {
-    if ((await bash(sandbox, healthScript)).exitCode === 0) return sandbox;
+    if ((await bash(sandbox, healthScript)).exitCode === 0) {
+      await markActive(sandbox);
+      return sandbox;
+    }
     await pause(500);
   }
   throw new BrowserError("unavailable", "The cloud browser's desktop did not start. Try again in a moment.");
@@ -300,10 +312,14 @@ export function frontPage(tabsJson: string): BrowserPage | undefined {
   }
 }
 
-/** Gives a session more time when it is close to sleeping. The plan's session cap still applies. */
-async function extendIfNeeded(sandbox: Sandbox) {
-  const left = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
-  if (left < keepAliveBelowMs) await sandbox.extendTimeout(keepAliveByMs).catch(() => undefined);
+/**
+ * Someone used the browser, so it now sleeps a full idle window from now. It
+ * never shortens a session, and the plan's maximum session length still applies.
+ */
+async function markActive(sandbox: Sandbox) {
+  if (!sandbox.expiresAt) return;
+  const short = Date.now() + browserIdleMs() - sandbox.expiresAt.getTime();
+  if (short > 60_000) await sandbox.extendTimeout(short).catch(() => undefined);
 }
 
 async function getBrowser(actor: Pick<AssistantActor, "id">): Promise<Sandbox | undefined> {
@@ -334,10 +350,10 @@ export async function browserStatus(actor: Pick<AssistantActor, "id">): Promise<
   };
 }
 
-/** Keeps a running browser awake while its owner is watching. It never resumes a sleeping one. */
-export async function keepBrowserAlive(actor: Pick<AssistantActor, "id">): Promise<void> {
+/** The owner pressed Keep awake. It never resumes a sleeping browser. */
+export async function keepBrowserAwake(actor: Pick<AssistantActor, "id">): Promise<void> {
   const sandbox = await getBrowser(actor);
-  if (sandbox?.status === "running") await extendIfNeeded(sandbox);
+  if (sandbox?.status === "running") await markActive(sandbox);
 }
 
 /**

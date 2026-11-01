@@ -16,8 +16,8 @@ import {
 import { createTaskBackend } from "../../agent/lib/task-backend";
 import type { AssistantActor } from "../../lib/auth/actor";
 
-const actorA: AssistantActor = { id: "google:synthetic-user-a", email: "synthetic-a@agiventures.ca" };
-const actorB: AssistantActor = { id: "google:synthetic-user-b", email: "synthetic-b@agiventures.ca" };
+const actorA: AssistantActor = { id: "google:synthetic-user-a", email: "synthetic-a@workspace.example" };
+const actorB: AssistantActor = { id: "google:synthetic-user-b", email: "synthetic-b@workspace.example" };
 const sessionA = "wrun_synthetic_user_a_session";
 const sessionB = "wrun_synthetic_user_b_session";
 
@@ -186,7 +186,7 @@ test("tools require verified matching current and creator actors, regardless of 
 });
 
 test("session ownership follows the stable verified Google subject when a profile email changes", async () => {
-  const renamed = { ...actorA, email: "synthetic-a-renamed@agiventures.ca" };
+  const renamed = { ...actorA, email: "synthetic-a-renamed@workspace.example" };
   const auth = assistantGoogleAuth({
     session: async () => renamed,
     owner: async () => actorA,

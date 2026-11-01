@@ -4,7 +4,7 @@ import type { AssistantActor } from "../../lib/auth/actor";
 import { preferenceInputSchema } from "../../agent/lib/preference";
 import { assistantBackendOrigin, createTaskBackend } from "../../agent/lib/task-backend";
 
-const actor: AssistantActor = { id: "google:synthetic-owner", email: "synthetic@agiventures.ca" };
+const actor: AssistantActor = { id: "google:synthetic-owner", email: "synthetic@workspace.example" };
 
 test("saved preference accepts only supported bounded brief formats with provenance", () => {
   assert.equal(preferenceInputSchema.safeParse({

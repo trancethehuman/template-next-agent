@@ -4,7 +4,7 @@ The assistant reads upcoming events and free/busy windows through the Google Cal
 
 ## Sign-in and account isolation
 
-The assistant requires Google sign-in through the application's authentication boundary. A clone accepts verified Google accounts by default. An operator can set `AUTH_GOOGLE_WORKSPACE_DOMAIN` to restrict an installation to a Google Workspace organization; this demo configures `agiventures.ca`. When configured, Workspace membership and verified email are checked on the server. A matching-looking email supplied by a browser or model is not authentication.
+The assistant requires Google sign-in through the application's authentication boundary. A clone accepts verified Google accounts by default. An operator can set `AUTH_GOOGLE_WORKSPACE_DOMAIN` to restrict an installation to a Google Workspace organization. When configured, Workspace membership and verified email are checked on the server. A matching-looking email supplied by a browser or model is not authentication.
 
 The server supplies `AssistantActor {id, email, name?}`, where `id` is `google:` followed by Google's verified stable subject. Calendar consent and token requests use that actor ID as the Vercel Connect subject. Each actor must authorize Calendar independently. The Calendar provider always targets `primary`, reads Google's actual primary-calendar ID before event reads or writes, and verifies that it matches the actor's verified email. Connecting a different Google account fails closed without exposing its events.
 
@@ -14,9 +14,9 @@ The live Calendar exports require an actor. `createCalendarClientForActor(actor)
 
 ## Project and connector setup
 
-This checkout is linked to [AGI Ventures Canada / template-next-agent](https://vercel.com/agi-ventures-canada/template-next-agent). The project uses Node.js 24, Next.js, `bun install --frozen-lockfile`, and `bun run build`. Creating and linking the project did not deploy it.
+Link the checkout to your own Vercel project. The project uses Node.js 24, Next.js, `bun install --frozen-lockfile`, and `bun run build`. Linking a project does not deploy it.
 
-The Calendar connector is `google/personal-assistant-calendar`, attached to this project's **Development** environment only. Its OAuth client credentials remain in protected Vercel configuration. A grant created for an earlier fixed owner is not reused by the new user-account flow. Connector creation or a successful sign-in does not establish Calendar consent for another actor.
+Use one Google connector for the project, attached only to the environments that need it; a local demo needs only **Development**. Its OAuth client credentials remain in protected Vercel configuration. A grant created for an earlier fixed owner is not reused by the new user-account flow. Connector creation or a successful sign-in does not establish Calendar consent for another actor.
 
 1. Configure the application's Google sign-in as described in [AUTH.md](AUTH.md). The login OAuth client and Calendar authorization have different jobs: sign-in establishes a verified application identity; Vercel Connect manages that identity's Calendar grant. Set `AUTH_GOOGLE_WORKSPACE_DOMAIN` only if this installation should restrict access to an organization; otherwise leave it empty. A configured restriction is checked at sign-in and on protected assistant requests. Each clone supplies its own Google OAuth client, Vercel project, connector, and server secrets.
 
@@ -31,7 +31,7 @@ The Calendar connector is `google/personal-assistant-calendar`, attached to this
 3. Create a Google OAuth connector if needed. Google currently requires your own web OAuth client ID and secret. Enable the Calendar API in the intended Google Cloud project, configure its consent screen and test users as appropriate, and register the exact provider redirect URI `https://connect.vercel.com/callback`. Enter credentials through Vercel's protected setup, never chat, shell arguments, screenshots, or this public source tree.
 
    ```sh
-   bunx vercel connect create google --name personal-assistant-calendar
+   bunx vercel connect create google --name assistant-calendar
    bunx vercel connect attach '<returned-connector-uid>' -e development
    ```
 

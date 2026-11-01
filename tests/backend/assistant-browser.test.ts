@@ -28,6 +28,7 @@ const sandbox = {
   },
 };
 let exists = true;
+let allowStart = false;
 class APIError extends Error {
   constructor(public response: Response) {
     super("synthetic provider error");
@@ -41,12 +42,13 @@ mock.module("@vercel/sandbox", () => ({
       return sandbox;
     },
     getOrCreate: async () => {
-      throw new Error("A refused action must never start a browser");
+      if (!allowStart) throw new Error("A refused action must never start a browser");
+      return sandbox;
     },
   },
 }));
 process.env.AUTH_SECRET = "synthetic-auth-secret-for-browser-tests-only";
-const { browserPassword, browserSandboxName, browserStatus, frontPage, keepBrowserAlive, runBrowserAction, stopBrowser } = await import("../../lib/assistant/browser");
+const { browserIdleMs, browserPassword, browserSandboxName, browserStatus, frontPage, keepBrowserAwake, runBrowserAction, stopBrowser } = await import("../../lib/assistant/browser");
 
 const owner = { id: "google:synthetic-browser-owner" };
 const other = { id: "google:synthetic-browser-other" };
@@ -137,7 +139,7 @@ describe("cloud browser status", () => {
 });
 
 describe("chosen model on the signed-in principal", () => {
-  const actor: AssistantActor = { id: "google:synthetic-model-user", email: "synthetic-model@agiventures.ca" };
+  const actor: AssistantActor = { id: "google:synthetic-model-user", email: "synthetic-model@workspace.example" };
   const auth = assistantGoogleAuth({
     session: async (request) => (request.headers.get("cookie")?.includes("synthetic-session=yes") ? actor : null),
     owner: async () => actor,
@@ -162,20 +164,39 @@ describe("chosen model on the signed-in principal", () => {
   });
 });
 
-describe("cloud browser keep-alive and saved state", () => {
-  test("a watched browser gets more time only when it is close to sleeping, and never wakes", async () => {
+describe("cloud browser idle shutdown and saved state", () => {
+  test("a browser sleeps after 30 idle minutes by default, and never after more than an hour", () => {
+    expect(browserIdleMs({})).toBe(30 * 60_000);
+    expect(browserIdleMs({ ASSISTANT_BROWSER_IDLE_MINUTES: "15" })).toBe(15 * 60_000);
+    expect(browserIdleMs({ ASSISTANT_BROWSER_IDLE_MINUTES: "600" })).toBe(60 * 60_000);
+    expect(browserIdleMs({ ASSISTANT_BROWSER_IDLE_MINUTES: "1" })).toBe(5 * 60_000);
+    expect(browserIdleMs({ ASSISTANT_BROWSER_IDLE_MINUTES: "forever" })).toBe(30 * 60_000);
+  });
+
+  test("watching never keeps it awake; Keep awake and agent actions buy one idle window; a sleeping browser never wakes", async () => {
     exists = true;
     sandbox.status = "running";
+    sandbox.healthy = true;
+    const idle = browserIdleMs();
     sandbox.extendedBy = 0;
-    sandbox.expiresAt = new Date(Date.now() + 60 * 60_000);
-    await keepBrowserAlive(owner);
-    expect(sandbox.extendedBy).toBe(0);
     sandbox.expiresAt = new Date(Date.now() + 60_000);
-    await keepBrowserAlive(owner);
-    expect(sandbox.extendedBy).toBeGreaterThan(0);
+    await browserStatus(owner);
+    expect(sandbox.extendedBy).toBe(0);
+    await keepBrowserAwake(owner);
+    expect(sandbox.extendedBy).toBeGreaterThan(idle - 2 * 60_000);
+    expect(sandbox.extendedBy).toBeLessThanOrEqual(idle);
+    sandbox.extendedBy = 0;
+    sandbox.expiresAt = new Date(Date.now() + idle);
+    await keepBrowserAwake(owner);
+    expect(sandbox.extendedBy).toBe(0);
+    allowStart = true;
+    sandbox.expiresAt = new Date(Date.now() + 60_000);
+    await runBrowserAction(owner, { action: "snapshot" });
+    expect(sandbox.extendedBy).toBeGreaterThan(idle - 2 * 60_000);
+    allowStart = false;
     sandbox.status = "stopped";
     sandbox.extendedBy = 0;
-    await keepBrowserAlive(owner);
+    await keepBrowserAwake(owner);
     expect(sandbox.extendedBy).toBe(0);
   });
 

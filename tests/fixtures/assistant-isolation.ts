@@ -6,14 +6,14 @@ import type { AssistantTaskInput, TaskEvent } from "../../lib/assistant/types";
 
 process.env.AUTH_SECRET =
   "synthetic-isolation-test-secret-at-least-32-characters";
-process.env.AUTH_GOOGLE_WORKSPACE_DOMAIN = "agiventures.ca";
+process.env.AUTH_GOOGLE_WORKSPACE_DOMAIN = "workspace.example";
 const alice: AssistantActor = {
   id: "google:synthetic-alice",
-  email: "alice@agiventures.ca",
+  email: "alice@workspace.example",
 };
 const bob: AssistantActor = {
   id: "google:synthetic-bob",
-  email: "bob@agiventures.ca",
+  email: "bob@workspace.example",
 };
 const taskName = "workflow//./workflows/assistant-task//assistantTaskWorkflow";
 const preferenceName =
@@ -175,7 +175,7 @@ const browserTokens = new Map(
             token: {
               sub: actor.id,
               email: actor.email,
-              workspaceDomain: "agiventures.ca",
+              workspaceDomain: "workspace.example",
               sessionKind: "assistant-user",
             },
           }),

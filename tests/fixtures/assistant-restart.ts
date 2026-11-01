@@ -6,15 +6,15 @@ import type { AssistantTaskInput, TaskEvent } from "../../lib/assistant/types";
 
 process.env.AUTH_SECRET =
   "synthetic-restart-fixture-secret-at-least-32-characters";
-process.env.AUTH_GOOGLE_WORKSPACE_DOMAIN = "agiventures.ca";
+process.env.AUTH_GOOGLE_WORKSPACE_DOMAIN = "workspace.example";
 process.env.ASSISTANT_CALENDAR_WRITE_ENABLED = "true";
 const alice: AssistantActor = {
   id: "google:synthetic-restart-alice",
-  email: "alice@agiventures.ca",
+  email: "alice@workspace.example",
 };
 const bob: AssistantActor = {
   id: "google:synthetic-restart-bob",
-  email: "bob@agiventures.ca",
+  email: "bob@workspace.example",
 };
 const workflowName =
   "workflow//./workflows/assistant-task//assistantTaskWorkflow";
@@ -154,7 +154,7 @@ const cookieTokens = new Map(
               sub: actor.id,
               email: actor.email,
               sessionKind: "assistant-user",
-              workspaceDomain: "agiventures.ca",
+              workspaceDomain: "workspace.example",
             },
           }),
         ] as const,

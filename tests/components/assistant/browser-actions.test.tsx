@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BrowserActionRow } from "@/components/assistant/assistant-chat";
-import { browserSubtitle } from "@/components/assistant/browser-view";
+import { browserSleepNote, browserSubtitle } from "@/components/assistant/browser-view";
 import { ChatSplit } from "@/components/assistant/chat-split";
 import {
   browserActionLabel,
@@ -101,6 +101,16 @@ describe("browser panel", () => {
     expect(browserSubtitle({ state: "off" }, "open")).toBe("Starting…");
     expect(browserSubtitle({ state: "starting" })).toBe("Starting…");
     expect(browserSubtitle({ state: "off" })).toBe("Off");
+  });
+
+  test("Keep awake is offered only when a live browser is about to sleep", () => {
+    const checkedAt = Date.parse("2026-11-01T12:00:00Z");
+    const live = (minutes: number) => ({ state: "live", viewUrl: "v", controlUrl: "c", sleepsAt: new Date(checkedAt + minutes * 60_000).toISOString() }) as const;
+    expect(browserSleepNote(live(3), checkedAt)?.soon).toBe(true);
+    expect(browserSleepNote(live(20), checkedAt)?.soon).toBe(false);
+    expect(browserSleepNote(live(20), checkedAt)?.at).toBeTruthy();
+    expect(browserSleepNote({ state: "stopped", saved: true }, checkedAt)).toBeUndefined();
+    expect(browserSleepNote(undefined, checkedAt)).toBeUndefined();
   });
 
   test("the resizable split renders a placeholder on the server, without reading storage", () => {

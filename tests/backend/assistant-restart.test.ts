@@ -17,7 +17,7 @@ import type {
 
 const actor: AssistantActor = {
   id: "google:synthetic-restart-owner",
-  email: "restart@agiventures.ca",
+  email: "restart@workspace.example",
 };
 const sources = (version: 1 | 2): TaskSource[] => [
   {

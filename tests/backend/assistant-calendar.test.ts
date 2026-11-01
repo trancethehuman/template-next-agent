@@ -495,8 +495,8 @@ test("the local calendar return bridge rejects external, changed-port, credentia
 
 test("each signed-in actor gets a distinct OAuth subject, primary calendar, verified owner, and event ID", async () => {
   const actors: AssistantActor[] = [
-    {id: "google:synthetic-user-a", email: "synthetic-a@agiventures.ca"},
-    {id: "google:synthetic-user-b", email: "synthetic-b@agiventures.ca"},
+    {id: "google:synthetic-user-a", email: "synthetic-a@workspace.example"},
+    {id: "google:synthetic-user-b", email: "synthetic-b@workspace.example"},
     {id: "google:synthetic-user-c", email: "synthetic-c@example.test"},
   ];
   const subjects: string[] = [];
@@ -539,7 +539,7 @@ test("each signed-in actor gets a distinct OAuth subject, primary calendar, veri
 });
 
 test("actor-bound clients cannot use the legacy grant or expose a different account's events", async () => {
-  const actor = {id: "google:synthetic-user-a", email: "synthetic-a@agiventures.ca"};
+  const actor = {id: "google:synthetic-user-a", email: "synthetic-a@workspace.example"};
   let eventReads = 0;
   const client = createCalendarClientForActor(actor, {environment: writeEnvironment, getToken: async (_connector, params) => {
     assert.deepEqual(params.subject, {type: "user", id: actor.id});
@@ -547,7 +547,7 @@ test("actor-bound clients cannot use the legacy grant or expose a different acco
     return "synthetic-token";
   }, fetch: async input => {
     if (!new URL(String(input)).pathname.endsWith("/calendars/primary")) eventReads++;
-    return Response.json({id: "synthetic-b@agiventures.ca"});
+    return Response.json({id: "synthetic-b@workspace.example"});
   }});
   const result = await client.overview();
   assert.equal(result.status.state, "authorization_required");
