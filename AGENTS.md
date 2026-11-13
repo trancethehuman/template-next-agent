@@ -45,6 +45,8 @@ The shared `skills/` directory also includes Next.js, React, EVE, TypeSafe, Work
 - EVE: `node_modules/eve/docs/README.md`
 - Workflow SDK: `node_modules/workflow/docs/`
 
+Before using ui-sdk, follow the `ui-sdk` skill if it is installed and read `node_modules/@ui-sdk/react/docs/llms.txt`. To build a new component, also search `node_modules/@ui-sdk/react/docs/core.md` by heading and read `node_modules/@ui-sdk/react/docs/rendering.md`.
+
 The checked-in dependency versions and `bun.lock` define the working stack. In particular, this starter pins Workflow SDK 5 beta; an unversioned `bun add workflow` currently resolves to Workflow 4. Read the installed docs and typecheck whenever changing versions.
 
 ## Classification behavior
