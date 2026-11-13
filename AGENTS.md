@@ -47,7 +47,7 @@ The shared `skills/` directory also includes Next.js, React, EVE, TypeSafe, Work
 
 Before using ui-sdk, follow the `ui-sdk` skill if it is installed and read `node_modules/@ui-sdk/react/docs/llms.txt`. To build a new component, also search `node_modules/@ui-sdk/react/docs/core.md` by heading and read `node_modules/@ui-sdk/react/docs/rendering.md`.
 
-The checked-in dependency versions and `bun.lock` define the working stack. In particular, this starter pins Workflow SDK 5 beta; an unversioned `bun add workflow` currently resolves to Workflow 4. Read the installed docs and typecheck whenever changing versions.
+The checked-in dependency versions and `bun.lock` define the working stack. This starter pins stable Workflow SDK 5 with a matching `@workflow/core` version; upgrade them together. Read the installed docs and typecheck whenever changing versions. Local World storage before 5.1 uses an incompatible flat layout: stop the old server and archive its data outside the active directory or select a fresh `WORKFLOW_LOCAL_DATA_DIR` before starting the upgraded runtime. See [local storage upgrade notes](docs/ASSISTANT.md#storage-and-retention).
 
 ## Classification behavior
 

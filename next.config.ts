@@ -2,19 +2,26 @@ import type { NextConfig } from "next";
 import { resolve } from "node:path";
 import { withEve } from "eve/next";
 import { withWorkflow } from "workflow/next";
+import { assertCompatibleLocalWorkflowDataDirectory } from "./lib/workflow/local-data";
 
 // The pinned Next adapter otherwise stores Local World records under .next,
 // which next build clears. Select the local World before invoking the adapter
 // so its fallback cannot overwrite this persistent path. EVE explicitly owns
 // its separate .eve/.workflow-data directory and queue.
-if (!process.env.VERCEL && !process.env.VERCEL_DEPLOYMENT_ID) {
+if (!process.env.VERCEL_DEPLOYMENT_ID) {
   process.env.WORKFLOW_TARGET_WORLD ||= "local";
-  if (process.env.WORKFLOW_TARGET_WORLD === "local") {
-    process.env.WORKFLOW_LOCAL_DATA_DIR = resolve(
-      process.cwd(),
-      process.env.WORKFLOW_LOCAL_DATA_DIR || ".workflow-data",
-    );
-  }
+}
+if (
+  process.env.WORKFLOW_TARGET_WORLD === "local" ||
+  process.env.WORKFLOW_TARGET_WORLD === "@workflow/world-local"
+) {
+  process.env.WORKFLOW_LOCAL_DATA_DIR = resolve(
+    process.cwd(),
+    process.env.WORKFLOW_LOCAL_DATA_DIR || ".workflow-data",
+  );
+  assertCompatibleLocalWorkflowDataDirectory(
+    process.env.WORKFLOW_LOCAL_DATA_DIR,
+  );
 }
 
 const nextConfig: NextConfig = {

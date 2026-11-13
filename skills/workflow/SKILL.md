@@ -4,6 +4,7 @@ description: Creates durable, resumable workflows using Vercel's Workflow SDK. U
 metadata:
   author: Vercel Inc.
   version: '1.17'
+  local_modifications: Integration-testing installation guidance updated for stable Workflow 5 and Bun.
 ---
 
 ## *Critical*: Always use correct `workflow` documentation
@@ -574,7 +575,7 @@ describe("createUser step", () => {
 });
 ```
 
-**Integration testing:** Use `@workflow/vitest` for workflows using `sleep()`, hooks, webhooks, or retries. Install it on the same npm dist-tag as `workflow`: `npm i -D @workflow/vitest@beta` for Workflow 5, because `@workflow/vitest@latest` is still the 4.x line. The plugin fails the run when its `@workflow/core` major differs from the app's.
+**Integration testing:** Use `@workflow/vitest` for workflows using `sleep()`, hooks, webhooks, or retries. Install it on the same major version as `workflow`: `bun add --dev @workflow/vitest@^5` for stable Workflow 5. The plugin fails the run when its `@workflow/core` major differs from the app's.
 
 ```typescript
 // vitest.integration.config.ts
